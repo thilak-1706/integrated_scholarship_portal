@@ -1,5 +1,6 @@
-import React from 'react';
-import { Check, Clock, AlertTriangle, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Check, Clock, AlertTriangle, X, ShieldAlert, Zap } from 'lucide-react';
+import api from '../../services/api';
 
 const STAGES = [
   { key: 'SUBMITTED', label: '1. Application Submitted', desc: 'Online application submitted by student' },
@@ -40,16 +41,114 @@ const getStageIndex = (status, applicationDetails) => {
   return 0;
 };
 
-const Timeline = ({ currentStatus, auditLogs = [], applicationDetails }) => {
+const formatSeconds = (sec) => {
+  const s = Math.max(0, Math.round(sec));
+  const mins = Math.floor(s / 60);
+  const remSec = s % 60;
+  return `${String(mins).padStart(2, '0')}:${String(remSec).padStart(2, '0')}`;
+};
+
+const Timeline = ({ currentStatus, auditLogs = [], applicationDetails, slpTracking: initialSlpTracking }) => {
   const currentIndex = getStageIndex(currentStatus, applicationDetails);
   const isRejected = currentStatus === 'REJECTED' || applicationDetails?.departmentVerification?.decision === 'REJECTED';
   const isCorrection = currentStatus === 'CORRECTION_REQUIRED';
 
+  const [slpData, setSlpData] = useState(initialSlpTracking || null);
+  const [slpConfig, setSlpConfig] = useState({
+    mode: 'DEMO',
+    label: 'Demo Mode — SLA: 1 minute',
+    defaultStageSlaSeconds: 60
+  });
+  const [now, setNow] = useState(Date.now());
+
+  // Fetch central SLP config & live tracking if not passed
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchConfig = async () => {
+      try {
+        const res = await api.get('/slp/config');
+        if (res.data?.success && isMounted) {
+          setSlpConfig(res.data.data);
+        }
+      } catch (e) {
+        // Fallback to default
+      }
+    };
+
+    fetchConfig();
+
+    const fetchTracking = async () => {
+      const appId = applicationDetails?._id || applicationDetails?.applicationNumber;
+      if (!appId) return;
+      try {
+        const res = await api.get(`/slp/tracking/${appId}`);
+        if (res.data?.success && isMounted) {
+          setSlpData(res.data.data);
+        }
+      } catch (e) {
+        // Fallback
+      }
+    };
+
+    if (!slpData && (applicationDetails?._id || applicationDetails?.applicationNumber)) {
+      fetchTracking();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [applicationDetails?._id, applicationDetails?.applicationNumber]);
+
+  // Keep live 1-second ticker for real-time countdown / overdue calculation
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Compute live timing for active stage
+  const stageDuration = slpData?.slaDuration || slpConfig.defaultStageSlaSeconds || 60;
+  const stageStartMs = slpData?.stageStartedAt ? new Date(slpData.stageStartedAt).getTime() : now;
+  const rawElapsed = slpData?.stageCompletedAt
+    ? (slpData.elapsedTime || 0)
+    : Math.max(0, (now - stageStartMs) / 1000);
+
+  const isStageBreached =
+    slpData?.slaStatus === 'SLA_BREACHED' ||
+    slpData?.escalationLevel > 0 ||
+    slpData?.timerState === 'STOPPED' ||
+    rawElapsed >= stageDuration;
+
+  // FREEZE timer at stageDuration (01:00) once breached - DO NOT count past 01:00
+  const elapsedSeconds = isStageBreached ? stageDuration : rawElapsed;
+  const remainingSeconds = Math.max(0, stageDuration - elapsedSeconds);
+
+  const isStageWarning =
+    !isStageBreached &&
+    (slpData?.slaStatus === 'SLA_WARNING' || rawElapsed >= stageDuration * 0.75);
+
   return (
-    <div className="tracking-timeline py-3">
+    <div className="tracking-timeline py-2">
+      {/* Central SLP Configuration Banner */}
+      <div className="slp-mode-banner shadow-xs">
+        <div className="d-flex align-items-center gap-2">
+          <span className="badge bg-warning text-dark fw-bold px-2 py-1 d-flex align-items-center gap-1">
+            <Zap size={13} />
+            {slpConfig.mode === 'DEMO' ? 'SLP DEMO' : 'SLP PRODUCTION'}
+          </span>
+          <span className="fw-semibold text-dark">{slpConfig.label}</span>
+        </div>
+        <span className="text-secondary small d-none d-md-inline font-monospace">
+          {isStageBreached ? '⚠️ Auto-Escalation Active' : '⏱️ 1-Minute Evaluation Active'}
+        </span>
+      </div>
+
       {STAGES.map((stage, idx) => {
         let nodeClass = '';
         let icon = <span className="text-muted" style={{ fontSize: '0.8rem', lineHeight: 1 }}>○</span>;
+        const isCurrentActive = idx === currentIndex && !isRejected && currentIndex < 7;
 
         if (isRejected) {
           const rejectStageIdx = applicationDetails?.departmentVerification?.decision === 'REJECTED' ? 3 : 1;
@@ -75,11 +174,21 @@ const Timeline = ({ currentStatus, auditLogs = [], applicationDetails }) => {
               nodeClass = 'completed';
               icon = <Check size={12} />;
             } else if (currentIndex === 4) {
-              nodeClass = 'completed current';
-              icon = <Check size={12} />;
+              // Department Approved - if sanctioned is not yet generated
+              nodeClass = isStageBreached ? 'sla-breached' : 'completed current';
+              icon = isStageBreached ? <AlertTriangle size={12} /> : <Check size={12} />;
             } else {
-              nodeClass = 'current';
-              icon = <Clock size={12} />;
+              // Active processing stage
+              if (isStageBreached) {
+                nodeClass = 'sla-breached';
+                icon = <AlertTriangle size={12} />;
+              } else if (isStageWarning) {
+                nodeClass = 'sla-warning';
+                icon = <Clock size={12} />;
+              } else {
+                nodeClass = 'current';
+                icon = <Clock size={12} />;
+              }
             }
           } else {
             nodeClass = '';
@@ -87,7 +196,11 @@ const Timeline = ({ currentStatus, auditLogs = [], applicationDetails }) => {
           }
         }
 
-        // Find relevant audit log entry matching this transition
+        // Find relevant stage history from SLP Tracking or AuditLog
+        const historyItem = slpData?.stageHistory?.find(
+          (h) => h.stage === stage.key || (stage.key === 'DEPARTMENT_VERIFICATION' && h.stage === 'ROUTED_TO_DEPARTMENT')
+        );
+
         const logEntry = auditLogs.find((l) => {
           if (stage.key === 'SUBMITTED' && l.newStatus === 'SUBMITTED') return true;
           if (stage.key === 'INSTITUTE_VERIFIED' && (l.newStatus === 'INSTITUTE_VERIFIED' || (l.previousStatus === 'SUBMITTED' && l.officerRole === 'INSTITUTE_OFFICER'))) return true;
@@ -100,15 +213,24 @@ const Timeline = ({ currentStatus, auditLogs = [], applicationDetails }) => {
           return false;
         });
 
+        const isPastCompleted = idx < currentIndex || (idx === currentIndex && currentIndex === 7);
+        const wasProcessedAfterSla = historyItem?.slaStatus === 'COMPLETED_AFTER_SLA';
+
         return (
           <div key={stage.key} className={`timeline-node ${nodeClass}`}>
             <div className="timeline-dot">{icon}</div>
             <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start gap-1.5">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-grow-1">
                 <h6
                   className="fw-bold mb-1"
                   style={{
-                    color: nodeClass.includes('current') ? '#2563eb' : (nodeClass.includes('completed') ? '#0f172a' : '#64748b')
+                    color: nodeClass.includes('sla-breached')
+                      ? '#b45309'
+                      : nodeClass.includes('current')
+                      ? '#2563eb'
+                      : nodeClass.includes('completed')
+                      ? '#0f172a'
+                      : '#64748b'
                   }}
                 >
                   {stage.label}
@@ -117,6 +239,75 @@ const Timeline = ({ currentStatus, auditLogs = [], applicationDetails }) => {
                   {stage.desc}
                 </p>
 
+                {/* Real-time Live SLA Monitoring Card for Active Stage */}
+                {isCurrentActive && (
+                  <div
+                    className={`slp-timer-card shadow-xs ${
+                      isStageBreached ? 'breached' : isStageWarning ? 'warning' : 'active-ok'
+                    }`}
+                  >
+                    <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                      <div className="d-flex align-items-center gap-2">
+                        {isStageBreached ? (
+                          <>
+                            <span className="badge bg-warning text-dark fw-bold px-2.5 py-1">
+                              SLA BREACHED
+                            </span>
+                            <span className="badge border border-warning text-dark fw-bold px-2 py-0.5" style={{ backgroundColor: '#fef3c7' }}>
+                              Timer: STOPPED
+                            </span>
+                          </>
+                        ) : isStageWarning ? (
+                          <span className="badge bg-warning-subtle text-warning border border-warning fw-semibold px-2 py-1">
+                            SLA WARNING
+                          </span>
+                        ) : (
+                          <span className="badge bg-primary-subtle text-primary border border-primary fw-semibold px-2 py-1">
+                            WITHIN SLA
+                          </span>
+                        )}
+                        <span className="small text-secondary fw-semibold">
+                          SLA Limit: {formatSeconds(stageDuration)}
+                        </span>
+                      </div>
+
+                      <div className="small font-monospace fw-bold">
+                        {isStageBreached ? (
+                          <span className="fw-bold d-inline-flex align-items-center gap-1" style={{ color: '#b45309' }}>
+                            <Clock size={13} />
+                            STOPPED: {formatSeconds(stageDuration)}
+                          </span>
+                        ) : (
+                          <span className="text-primary d-inline-flex align-items-center gap-1">
+                            <Clock size={13} />
+                            {formatSeconds(remainingSeconds)} remaining
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-1.5 pt-1.5 border-top border-warning border-opacity-25 small text-secondary d-flex flex-wrap justify-content-between align-items-center gap-1">
+                      <span>
+                        SLA Limit: <strong className="text-dark">{formatSeconds(stageDuration)}</strong> &bull; Status:{' '}
+                        <strong style={{ color: isStageBreached ? '#b45309' : '#2563eb' }}>
+                          {isStageBreached ? 'SLA BREACHED' : 'WITHIN SLA'}
+                        </strong>
+                      </span>
+                      {isStageBreached ? (
+                        <span className="fw-semibold d-inline-flex align-items-center gap-1" style={{ color: '#b45309' }}>
+                          <ShieldAlert size={13} />
+                          Administrative Attention Required &bull; Auto-Escalated
+                        </span>
+                      ) : (
+                        <span className="text-success fw-medium">
+                          Processing within SLA limits
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Audit Log / History Details for Completed Stages */}
                 {logEntry && (
                   <div className="bg-light p-2 rounded small text-secondary mt-1 border">
                     <span className="fw-semibold text-dark">{logEntry.officerName} ({logEntry.officerRole}): </span>
@@ -127,6 +318,7 @@ const Timeline = ({ currentStatus, auditLogs = [], applicationDetails }) => {
                   </div>
                 )}
 
+                {/* Fallback descriptions for completed stages */}
                 {stage.key === 'APPROVED' && !logEntry && applicationDetails?.departmentVerification?.verifiedAt && (
                   <div className="bg-light p-2 rounded small text-secondary mt-1 border">
                     <span className="fw-semibold text-dark">
@@ -181,14 +373,62 @@ const Timeline = ({ currentStatus, auditLogs = [], applicationDetails }) => {
                     </span>
                   </div>
                 )}
+
+                {/* Past SLA summary line */}
+                {isPastCompleted && historyItem && (
+                  <div className="text-muted small mt-1" style={{ fontSize: '0.75rem' }}>
+                    <span className={wasProcessedAfterSla ? 'text-warning fw-semibold' : 'text-success fw-medium'}>
+                      {wasProcessedAfterSla ? '⚠️ Completed After SLA' : '✓ Completed Within SLA'}
+                    </span>
+                    {' '}• Processing time: <strong>{formatSeconds(historyItem.elapsedSeconds || 0)}</strong> (Target: {formatSeconds(historyItem.slaDuration)})
+                  </div>
+                )}
               </div>
+
+              {/* Status Badge in Header */}
               <div className="mt-1 mt-sm-0 flex-shrink-0">
-                {nodeClass === 'completed' && <span className="badge bg-success-subtle text-success">Completed</span>}
-                {nodeClass === 'completed current' && <span className="badge bg-success-subtle text-success">Current / Completed</span>}
-                {nodeClass === 'current' && <span className="badge bg-primary-subtle text-primary">In Progress</span>}
-                {nodeClass === 'warning' && <span className="badge bg-warning-subtle text-warning">Action Required</span>}
-                {nodeClass === 'danger' && <span className="badge bg-danger-subtle text-danger">Rejected</span>}
-                {!nodeClass && <span className="badge bg-light text-secondary border">Pending</span>}
+                {isCurrentActive && isStageBreached && (
+                  <span className="badge badge-sla-breached d-inline-flex align-items-center gap-1">
+                    <AlertTriangle size={12} />
+                    SLA Breached
+                  </span>
+                )}
+                {isCurrentActive && !isStageBreached && isStageWarning && (
+                  <span className="badge badge-sla-warning d-inline-flex align-items-center gap-1">
+                    <Clock size={12} />
+                    SLA Warning
+                  </span>
+                )}
+                {isCurrentActive && !isStageBreached && !isStageWarning && (
+                  <span className="badge bg-primary-subtle text-primary border border-primary">
+                    In Progress
+                  </span>
+                )}
+                {!isCurrentActive && isPastCompleted && wasProcessedAfterSla && (
+                  <span className="badge bg-warning-subtle text-warning border border-warning">
+                    Completed (After SLA)
+                  </span>
+                )}
+                {!isCurrentActive && isPastCompleted && !wasProcessedAfterSla && (
+                  <span className="badge bg-success-subtle text-success">
+                    Completed
+                  </span>
+                )}
+                {!isCurrentActive && !isPastCompleted && isCorrection && idx === 1 && (
+                  <span className="badge bg-warning-subtle text-warning">
+                    Action Required
+                  </span>
+                )}
+                {!isCurrentActive && !isPastCompleted && isRejected && idx === 1 && (
+                  <span className="badge bg-danger-subtle text-danger">
+                    Rejected
+                  </span>
+                )}
+                {!isCurrentActive && !isPastCompleted && !isCorrection && !isRejected && (
+                  <span className="badge bg-light text-secondary border">
+                    Pending
+                  </span>
+                )}
               </div>
             </div>
           </div>

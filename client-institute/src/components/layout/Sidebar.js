@@ -6,6 +6,7 @@ import {
   FileText,
   Users,
   Bell,
+  MessageSquare,
   X,
   School
 } from 'lucide-react';
@@ -25,7 +26,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       title: 'Institute Records',
       links: [
         { to: '/institute/students', label: 'Enrolled Students', icon: <Users size={18} /> },
-        { to: '/institute/notifications', label: 'Institute Alerts', icon: <Bell size={18} /> }
+        { to: '/institute/notifications', label: 'Institute Alerts', icon: <Bell size={18} /> },
+        { to: '/institute/feedback', label: 'Feedback & Support', icon: <MessageSquare size={18} /> }
       ]
     }
   ];

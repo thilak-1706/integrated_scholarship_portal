@@ -12,6 +12,7 @@ import InstituteApplications from './pages/institute/InstituteApplications';
 import InstituteVerification from './pages/institute/InstituteVerification';
 import InstituteStudents from './pages/institute/InstituteStudents';
 import InstituteNotifications from './pages/institute/InstituteNotifications';
+import InstituteFeedback from './pages/institute/InstituteFeedback';
 
 function App() {
   return (
@@ -70,6 +71,22 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['INSTITUTE_OFFICER']}>
                 <InstituteNotifications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/institute/feedback"
+            element={
+              <ProtectedRoute allowedRoles={['INSTITUTE_OFFICER']}>
+                <InstituteFeedback />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/feedback"
+            element={
+              <ProtectedRoute allowedRoles={['INSTITUTE_OFFICER']}>
+                <InstituteFeedback />
               </ProtectedRoute>
             }
           />

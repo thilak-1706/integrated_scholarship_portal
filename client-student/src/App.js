@@ -17,6 +17,7 @@ import StudentMyApplications from './pages/student/MyApplications';
 import StudentApplicationTracking from './pages/student/ApplicationTracking';
 import StudentPayments from './pages/student/Payments';
 import StudentNotifications from './pages/student/Notifications';
+import StudentFeedback from './pages/student/StudentFeedback';
 
 function App() {
   return (
@@ -116,6 +117,22 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['STUDENT']}>
                 <StudentNotifications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/feedback"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <StudentFeedback />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/feedback"
+            element={
+              <ProtectedRoute allowedRoles={['STUDENT']}>
+                <StudentFeedback />
               </ProtectedRoute>
             }
           />

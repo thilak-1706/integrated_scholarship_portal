@@ -5,11 +5,13 @@ const auditLogSchema = new mongoose.Schema(
     applicationId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Application',
-      required: true
+      required: false,
+      default: null
     },
     applicationNumber: {
       type: String,
-      required: true
+      required: false,
+      default: 'N/A'
     },
     previousStatus: {
       type: String,

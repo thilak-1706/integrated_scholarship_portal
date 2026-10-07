@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import PortalLayout from '../../components/layout/PortalLayout';
 import StatusBadge from '../../components/common/StatusBadge';
 import api from '../../services/api';
-import { FileText, Search, ShieldCheck, Eye, Award } from 'lucide-react';
+import { FileText, Search, ShieldCheck, Eye, Award, AlertTriangle } from 'lucide-react';
 
 const DepartmentApplications = () => {
   const [applications, setApplications] = useState([]);
@@ -114,7 +114,14 @@ const DepartmentApplications = () => {
               </thead>
               <tbody>
                 {applications.map((app) => (
-                  <tr key={app._id} style={{ fontSize: '0.88rem' }}>
+                  <tr
+                    key={app._id}
+                    style={{
+                      fontSize: '0.88rem',
+                      backgroundColor: app.slpTracking?.slaStatus === 'SLA_BREACHED' ? '#fefce8' : 'transparent',
+                      borderLeft: app.slpTracking?.slaStatus === 'SLA_BREACHED' ? '3px solid #eab308' : 'none'
+                    }}
+                  >
                     <td className="fw-bold text-primary text-break">{app.applicationNumber}</td>
                     <td>
                       <div className="fw-semibold text-dark">{app.studentName}</div>
@@ -124,7 +131,15 @@ const DepartmentApplications = () => {
                     <td className="text-muted small text-truncate" style={{ maxWidth: '180px' }}>{app.institutionName}</td>
                     <td className="text-muted">{new Date(app.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <StatusBadge status={app.status} />
+                      <div className="d-flex flex-column gap-1 align-items-start">
+                        <StatusBadge status={app.status} />
+                        {app.slpTracking?.slaStatus === 'SLA_BREACHED' && (
+                          <span className="badge badge-sla-breached d-inline-flex align-items-center gap-1" style={{ fontSize: '0.72rem' }}>
+                            <AlertTriangle size={11} />
+                            SLA Delayed
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td>
                       {app.approvedAmount > 0 ? (

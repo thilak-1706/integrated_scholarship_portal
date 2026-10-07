@@ -6,6 +6,8 @@ const Institution = require('../models/Institution');
 const Department = require('../models/Department');
 const Notification = require('../models/Notification');
 const { recordAuditLog, createNotification } = require('../utils/auditHelper');
+const slpService = require('../services/slpService');
+const SLPTracking = require('../models/SLPTracking');
 
 // Helper to enforce institution isolation
 const getOfficerInstitutionId = (req) => {
@@ -204,10 +206,24 @@ const getInstituteApplications = async (req, res) => {
       .populate('departmentId', 'name code')
       .sort({ createdAt: -1 });
 
+    // Attach SLP tracking info to each application
+    const appIds = applications.map((a) => a._id);
+    const slpTrackings = await SLPTracking.find({ applicationId: { $in: appIds } });
+    const slpMap = {};
+    slpTrackings.forEach((t) => {
+      slpMap[t.applicationId.toString()] = t;
+    });
+
+    const enrichedApplications = applications.map((app) => {
+      const appObj = app.toObject();
+      appObj.slpTracking = slpMap[app._id.toString()] || null;
+      return appObj;
+    });
+
     return res.status(200).json({
       success: true,
-      count: applications.length,
-      applications
+      count: enrichedApplications.length,
+      applications: enrichedApplications
     });
   } catch (error) {
     console.error('Get Institute Applications Error:', error);
@@ -251,10 +267,16 @@ const getInstituteApplicationById = async (req, res) => {
     // Fetch student's profile for institute side-by-side comparison
     const studentUser = await User.findById(application.studentId).select('-password');
 
+    // Fetch SLP tracking info
+    let slpTracking = await SLPTracking.findOne({
+      $or: [{ applicationId: application._id }, { applicationNumber: application.applicationNumber }]
+    });
+
     return res.status(200).json({
       success: true,
       application,
-      studentUser
+      studentUser,
+      slpTracking
     });
   } catch (error) {
     console.error('Get Institute Application Error:', error);
@@ -417,6 +439,30 @@ const verifyApplication = async (req, res) => {
       officerRole: 'INSTITUTE_OFFICER',
       remarks: remarks || `Institute Officer completed action: ${action}`
     });
+
+    // Handle SLP Stage Completion & Next Stage Transition
+    if (action === 'APPROVE') {
+      await slpService.completeStage(application._id, 'SUBMITTED', {
+        id: req.user._id,
+        name: req.user.name,
+        role: 'INSTITUTE_OFFICER',
+        remarks: remarks || 'Institute verification completed successfully.'
+      }, 'APPROVE');
+
+      // Start next stage: ROUTED_TO_DEPARTMENT (Department Scrutiny)
+      await slpService.startStage(application, 'ROUTED_TO_DEPARTMENT', {
+        id: req.user._id,
+        name: req.user.name,
+        role: 'INSTITUTE_OFFICER'
+      });
+    } else {
+      await slpService.completeStage(application._id, 'SUBMITTED', {
+        id: req.user._id,
+        name: req.user.name,
+        role: 'INSTITUTE_OFFICER',
+        remarks: remarks || `Institute action: ${action}`
+      }, action);
+    }
 
     return res.status(200).json({
       success: true,

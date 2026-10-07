@@ -8,6 +8,7 @@ import {
   DollarSign,
   BarChart3,
   Bell,
+  MessageSquare,
   X,
   Landmark
 } from 'lucide-react';
@@ -29,7 +30,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       links: [
         { to: '/department/disbursement', label: 'DBT Disbursement', icon: <DollarSign size={18} /> },
         { to: '/department/reports', label: 'Scheme Reports', icon: <BarChart3 size={18} /> },
-        { to: '/department/notifications', label: 'Official Notices', icon: <Bell size={18} /> }
+        { to: '/department/notifications', label: 'Official Notices', icon: <Bell size={18} /> },
+        { to: '/department/feedback', label: 'Feedback & Support', icon: <MessageSquare size={18} /> }
       ]
     }
   ];

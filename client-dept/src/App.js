@@ -14,6 +14,7 @@ import DepartmentSanctions from './pages/department/DepartmentSanctions';
 import DepartmentDisbursement from './pages/department/DepartmentDisbursement';
 import DepartmentReports from './pages/department/DepartmentReports';
 import DepartmentNotifications from './pages/department/DepartmentNotifications';
+import DepartmentFeedback from './pages/department/DepartmentFeedback';
 
 function App() {
   return (
@@ -88,6 +89,22 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['DEPARTMENT_OFFICER']}>
                 <DepartmentNotifications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/department/feedback"
+            element={
+              <ProtectedRoute allowedRoles={['DEPARTMENT_OFFICER']}>
+                <DepartmentFeedback />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/feedback"
+            element={
+              <ProtectedRoute allowedRoles={['DEPARTMENT_OFFICER']}>
+                <DepartmentFeedback />
               </ProtectedRoute>
             }
           />

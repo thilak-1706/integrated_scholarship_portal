@@ -8,6 +8,7 @@ import {
   FileText,
   CreditCard,
   Bell,
+  MessageSquare,
   X
 } from 'lucide-react';
 
@@ -28,7 +29,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       links: [
         { to: '/student/applications', label: 'My Applications', icon: <FileText size={18} /> },
         { to: '/student/payments', label: 'DBT Payments', icon: <CreditCard size={18} /> },
-        { to: '/student/notifications', label: 'Alerts & Messages', icon: <Bell size={18} /> }
+        { to: '/student/notifications', label: 'Alerts & Messages', icon: <Bell size={18} /> },
+        { to: '/student/feedback', label: 'Feedback & Support', icon: <MessageSquare size={18} /> }
       ]
     }
   ];

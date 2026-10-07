@@ -14,7 +14,9 @@ import {
   XCircle,
   Banknote,
   ShieldCheck,
-  TrendingUp
+  TrendingUp,
+  Zap,
+  ArrowRight
 } from 'lucide-react';
 import {
   PieChart,
@@ -32,6 +34,11 @@ import {
 
 const AdminDashboard = () => {
   const [data, setData] = useState(null);
+  const [slpStats, setSlpStats] = useState({
+    slaBreached: 0,
+    escalated: 0,
+    adminAttentionRequired: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +51,16 @@ const AdminDashboard = () => {
       if (res.data.success) {
         setData(res.data);
       }
+      try {
+        const slpRes = await api.get('/slp/admin/overview');
+        if (slpRes.data.success && slpRes.data.stats) {
+          setSlpStats({
+            slaBreached: slpRes.data.stats.slaBreached || 0,
+            escalated: slpRes.data.stats.escalated || 0,
+            adminAttentionRequired: slpRes.data.stats.adminAttentionRequired || 0
+          });
+        }
+      } catch (_) {}
     } catch (err) {
       console.error('Failed to load admin analytics:', err);
     } finally {
@@ -91,6 +108,59 @@ const AdminDashboard = () => {
             </Link>
             <Link to="/admin/audit-logs" className="btn btn-light btn-sm fw-bold">
               View Audit Logs
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* SLP SLA Alerts Card */}
+      <div className="custom-card p-3 p-md-4 mb-4 border-start border-4 border-warning shadow-xs" style={{ backgroundColor: '#fffbeb' }}>
+        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <div className="d-flex align-items-center gap-3">
+            <div className="p-2.5 rounded-3 bg-warning text-dark d-flex align-items-center justify-content-center shadow-xs">
+              <Zap size={22} className="text-dark" />
+            </div>
+            <div>
+              <div className="d-flex align-items-center gap-2">
+                <h6 className="fw-bold text-dark mb-0">SLP SLA Alerts</h6>
+                <span className="badge bg-warning text-dark fw-bold px-2 py-0.5" style={{ fontSize: '0.72rem' }}>
+                  Live Monitor
+                </span>
+              </div>
+              <span className="text-muted small">
+                Service Level Performance real-time breach detection and central escalation tracking
+              </span>
+            </div>
+          </div>
+
+          <div className="d-flex flex-wrap align-items-center gap-4">
+            <div className="text-center">
+              <div className="fs-5 fw-bold text-dark font-monospace">{slpStats.slaBreached}</div>
+              <span className="text-muted text-uppercase" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>
+                SLA Breached
+              </span>
+            </div>
+            <div className="vr d-none d-sm-block my-1" />
+            <div className="text-center">
+              <div className="fs-5 fw-bold font-monospace" style={{ color: '#b45309' }}>{slpStats.escalated}</div>
+              <span className="text-muted text-uppercase" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>
+                Escalated
+              </span>
+            </div>
+            <div className="vr d-none d-sm-block my-1" />
+            <div className="text-center">
+              <div className="fs-5 fw-bold text-danger font-monospace">{slpStats.adminAttentionRequired}</div>
+              <span className="text-muted text-uppercase" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>
+                Action Required
+              </span>
+            </div>
+
+            <Link
+              to="/admin/slp"
+              className="btn btn-warning btn-sm fw-bold px-3 d-flex align-items-center gap-1 shadow-xs"
+            >
+              <span>Inspect SLA Ledger</span>
+              <ArrowRight size={14} />
             </Link>
           </div>
         </div>

@@ -107,7 +107,14 @@ const MyApplications = () => {
               </thead>
               <tbody>
                 {filtered.map((app) => (
-                  <tr key={app._id} style={{ fontSize: '0.88rem' }}>
+                  <tr
+                    key={app._id}
+                    style={{
+                      fontSize: '0.88rem',
+                      backgroundColor: app.slpTracking?.slaStatus === 'SLA_BREACHED' ? '#fefce8' : 'transparent',
+                      borderLeft: app.slpTracking?.slaStatus === 'SLA_BREACHED' ? '3px solid #eab308' : 'none'
+                    }}
+                  >
                     <td className="fw-bold text-primary text-break">{app.applicationNumber}</td>
                     <td>
                       <div className="fw-semibold text-dark text-truncate" style={{ maxWidth: '280px' }}>
@@ -117,7 +124,15 @@ const MyApplications = () => {
                     </td>
                     <td className="text-muted">{new Date(app.createdAt).toLocaleDateString()}</td>
                     <td>
-                      <StatusBadge status={app.status} />
+                      <div className="d-flex flex-column gap-1 align-items-start">
+                        <StatusBadge status={app.status} />
+                        {app.slpTracking?.slaStatus === 'SLA_BREACHED' && (
+                          <span className="badge badge-sla-breached d-inline-flex align-items-center gap-1" style={{ fontSize: '0.72rem' }}>
+                            <AlertTriangle size={11} />
+                            SLA Delayed
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td>
                       {app.approvedAmount > 0 ? (

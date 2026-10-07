@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PortalLayout from '../../components/layout/PortalLayout';
 import StatusBadge from '../../components/common/StatusBadge';
 import api from '../../services/api';
-import { FileText, Search, Filter, ShieldCheck, Download, Printer } from 'lucide-react';
+import { FileText, Search, Filter, ShieldCheck, Download, Printer, AlertTriangle } from 'lucide-react';
 
 const AdminApplications = () => {
   const [applications, setApplications] = useState([]);
@@ -168,7 +168,14 @@ const AdminApplications = () => {
               </thead>
               <tbody>
                 {applications.map((app) => (
-                  <tr key={app._id} style={{ fontSize: '0.88rem' }}>
+                  <tr
+                    key={app._id}
+                    style={{
+                      fontSize: '0.88rem',
+                      backgroundColor: app.slpTracking?.slaStatus === 'SLA_BREACHED' ? '#fefce8' : 'transparent',
+                      borderLeft: app.slpTracking?.slaStatus === 'SLA_BREACHED' ? '3px solid #eab308' : 'none'
+                    }}
+                  >
                     <td className="fw-bold text-primary">{app.applicationNumber}</td>
                     <td>
                       <div className="fw-semibold text-dark">{app.studentName}</div>
@@ -190,7 +197,15 @@ const AdminApplications = () => {
                       </div>
                     </td>
                     <td>
-                      <StatusBadge status={app.status} />
+                      <div className="d-flex flex-column gap-1 align-items-start">
+                        <StatusBadge status={app.status} />
+                        {app.slpTracking?.slaStatus === 'SLA_BREACHED' && (
+                          <span className="badge badge-sla-breached d-inline-flex align-items-center gap-1" style={{ fontSize: '0.72rem' }}>
+                            <AlertTriangle size={11} />
+                            SLA Delayed
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td>
                       <span className="fw-bold text-success">

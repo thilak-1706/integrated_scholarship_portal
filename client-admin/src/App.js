@@ -16,6 +16,8 @@ import AdminApplications from './pages/admin/AdminApplications';
 import AdminReports from './pages/admin/AdminReports';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 import AdminNotifications from './pages/admin/AdminNotifications';
+import AdminSLPMonitor from './pages/admin/AdminSLPMonitor';
+import AdminFeedback from './pages/admin/AdminFeedback';
 
 function App() {
   return (
@@ -106,6 +108,30 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
                 <AdminNotifications />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/slp"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
+                <AdminSLPMonitor />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/feedback"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
+                <AdminFeedback />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/feedback"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
+                <AdminFeedback />
               </ProtectedRoute>
             }
           />

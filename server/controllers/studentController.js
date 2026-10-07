@@ -7,6 +7,8 @@ const Notification = require('../models/Notification');
 const Institution = require('../models/Institution');
 const Department = require('../models/Department');
 const { recordAuditLog, createNotification } = require('../utils/auditHelper');
+const slpService = require('../services/slpService');
+const SLPTracking = require('../models/SLPTracking');
 
 const getApplicationLookupQuery = (idOrNumber) => {
   if (!idOrNumber) return { _id: null };
@@ -322,12 +324,12 @@ const applyScholarship = async (req, res) => {
         issuingAuthority: 'Tahsildar / Revenue Department'
       },
 
-      bankDetails: bankDetails || {
-        accountNumber: student.profile?.accountNumber || '38947291048',
-        ifscCode: student.profile?.ifscCode || 'SBIN0001234',
-        bankName: student.profile?.bankName || 'State Bank of India',
-        branchName: student.profile?.branchName || 'Main Campus Branch',
-        accountHolderName: student.name
+      bankDetails: {
+        accountNumber: bankDetails?.accountNumber || student.profile?.accountNumber || '38947291048',
+        ifscCode: bankDetails?.ifscCode || student.profile?.ifscCode || 'SBIN0001234',
+        bankName: bankDetails?.bankName || student.profile?.bankName || 'State Bank of India',
+        branchName: bankDetails?.branchName || student.profile?.branchName || 'Main Campus Branch',
+        accountHolderName: bankDetails?.accountHolderName || student.name || 'Account Holder'
       },
 
       documents: documents || {
@@ -376,6 +378,13 @@ const applyScholarship = async (req, res) => {
       });
     }
 
+    // Start SLP SLA tracking timer for SUBMITTED stage
+    await slpService.startStage(application, 'SUBMITTED', {
+      id: student._id,
+      name: student.name,
+      role: 'STUDENT'
+    });
+
     return res.status(201).json({
       success: true,
       message: 'Scholarship Application Submitted Successfully',
@@ -402,10 +411,24 @@ const getMyApplications = async (req, res) => {
       .populate('paymentId')
       .sort({ createdAt: -1 });
 
+    // Attach SLP tracking info for each application
+    const appIds = applications.map((a) => a._id);
+    const slpTrackings = await SLPTracking.find({ applicationId: { $in: appIds } });
+    const slpMap = {};
+    slpTrackings.forEach((t) => {
+      slpMap[t.applicationId.toString()] = t;
+    });
+
+    const enrichedApplications = applications.map((app) => {
+      const appObj = app.toObject();
+      appObj.slpTracking = slpMap[app._id.toString()] || null;
+      return appObj;
+    });
+
     return res.status(200).json({
       success: true,
-      count: applications.length,
-      applications
+      count: enrichedApplications.length,
+      applications: enrichedApplications
     });
   } catch (error) {
     console.error('Get My Applications Error:', error);
@@ -497,10 +520,20 @@ const getApplicationDetails = async (req, res) => {
     // Re-fetch updated audit logs if added
     const updatedAuditLogs = await AuditLog.find({ applicationId: application._id }).sort({ timestamp: 1 });
 
+    // Fetch or initialize SLP tracking record
+    let slpTracking = await SLPTracking.findOne({
+      $or: [{ applicationId: application._id }, { applicationNumber: application.applicationNumber }]
+    });
+
+    if (!slpTracking && !['DISBURSED', 'PAYMENT_DISBURSED', 'REJECTED'].includes(application.status)) {
+      slpTracking = await slpService.startStage(application, application.status || 'SUBMITTED');
+    }
+
     return res.status(200).json({
       success: true,
       application,
-      auditLogs: updatedAuditLogs
+      auditLogs: updatedAuditLogs,
+      slpTracking
     });
   } catch (error) {
     console.error('Get Application Details Error:', error);
@@ -572,6 +605,14 @@ const resubmitCorrection = async (req, res) => {
         link: `/institute/applications/${application._id}`
       });
     }
+
+    // Restart SLP timer for resubmitted application
+    await slpService.startStage(application, 'SUBMITTED', {
+      id: studentId,
+      name: req.user.name,
+      role: 'STUDENT',
+      remarks: 'Corrections fixed by student and resubmitted'
+    });
 
     return res.status(200).json({
       success: true,

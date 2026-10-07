@@ -1,7 +1,10 @@
+const http = require('http');
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
+const { initSocketIO } = require('./utils/socketManager');
+const { startSlpEngine } = require('./services/slpService');
 
 // Route Handlers
 const authRoutes = require('./routes/authRoutes');
@@ -10,6 +13,8 @@ const instituteRoutes = require('./routes/instituteRoutes');
 const departmentRoutes = require('./routes/departmentRoutes');
 const adminPortalRoutes = require('./routes/adminPortalRoutes');
 const seedRoutes = require('./routes/seedRoutes');
+const slpRoutes = require('./routes/slpRoutes');
+const feedbackRoutes = require('./routes/feedbackRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -33,13 +38,15 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Mount Routes for All 4 Portals + Auth & Seeding
+// Mount Routes for All 4 Portals + Auth, Seeding & SLP Engine
 app.use('/api/auth', authRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/institute', instituteRoutes);
 app.use('/api/department', departmentRoutes);
 app.use('/api/admin', adminPortalRoutes);
 app.use('/api/seed', seedRoutes);
+app.use('/api/slp', slpRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
@@ -52,7 +59,15 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+initSocketIO(server);
+
+// Start SLP Background Engine
+startSlpEngine();
+
+server.listen(PORT, () => {
   console.log(`====================================================`);
   console.log(` National Scholarship API Server running on port ${PORT}`);
   console.log(` API Endpoints mounted:`);
@@ -62,6 +77,7 @@ const server = app.listen(PORT, () => {
   console.log(`   - Department Portal:    /api/department`);
   console.log(`   - Admin Portal:         /api/admin`);
   console.log(`   - Seed Demo Data:       /api/seed`);
+  console.log(`   - SLP Service Engine:   /api/slp`);
   console.log(`====================================================`);
 });
 

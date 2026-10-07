@@ -7,6 +7,8 @@ const Sanction = require('../models/Sanction');
 const Payment = require('../models/Payment');
 const Notification = require('../models/Notification');
 const { recordAuditLog, createNotification } = require('../utils/auditHelper');
+const slpService = require('../services/slpService');
+const SLPTracking = require('../models/SLPTracking');
 
 // Helper to get departmentId
 const getOfficerDepartmentId = (req) => {
@@ -273,10 +275,24 @@ const getDepartmentApplications = async (req, res) => {
       .populate('paymentId')
       .sort({ createdAt: -1 });
 
+    // Attach SLP tracking info to each application
+    const appIds = applications.map((a) => a._id);
+    const slpTrackings = await SLPTracking.find({ applicationId: { $in: appIds } });
+    const slpMap = {};
+    slpTrackings.forEach((t) => {
+      slpMap[t.applicationId.toString()] = t;
+    });
+
+    const enrichedApplications = applications.map((app) => {
+      const appObj = app.toObject();
+      appObj.slpTracking = slpMap[app._id.toString()] || null;
+      return appObj;
+    });
+
     return res.status(200).json({
       success: true,
-      count: applications.length,
-      applications
+      count: enrichedApplications.length,
+      applications: enrichedApplications
     });
   } catch (error) {
     console.error('Get Department Applications Error:', error);
@@ -329,10 +345,16 @@ const getDepartmentApplicationById = async (req, res) => {
     const AuditLog = require('../models/AuditLog');
     const auditLogs = await AuditLog.find({ applicationId: application._id }).sort({ timestamp: 1 });
 
+    // Fetch SLP tracking info
+    let slpTracking = await SLPTracking.findOne({
+      $or: [{ applicationId: application._id }, { applicationNumber: application.applicationNumber }]
+    });
+
     return res.status(200).json({
       success: true,
       application,
-      auditLogs
+      auditLogs,
+      slpTracking
     });
   } catch (error) {
     console.error('Get Department Application Error:', error);
@@ -468,6 +490,30 @@ const verifyDepartmentApplication = async (req, res) => {
       remarks: remarks || (action === 'APPROVE' ? 'Department approval completed. Scrutinized and approved by Department Officer.' : `Department Officer executed ${action} (Amount: ₹${application.approvedAmount})`)
     });
 
+    // SLP Stage Handling
+    if (action === 'APPROVE') {
+      await slpService.completeStage(application._id, application.status === 'DEPARTMENT_VERIFICATION' ? 'DEPARTMENT_VERIFICATION' : 'ROUTED_TO_DEPARTMENT', {
+        id: req.user._id,
+        name: req.user.name,
+        role: 'DEPARTMENT_OFFICER',
+        remarks: remarks || `Department scrutiny approved for ₹${application.approvedAmount}`
+      }, 'APPROVE');
+
+      // Start next stage: APPROVED (awaiting Sanction Order)
+      await slpService.startStage(application, 'APPROVED', {
+        id: req.user._id,
+        name: req.user.name,
+        role: 'DEPARTMENT_OFFICER'
+      });
+    } else {
+      await slpService.completeStage(application._id, application.status === 'DEPARTMENT_VERIFICATION' ? 'DEPARTMENT_VERIFICATION' : 'ROUTED_TO_DEPARTMENT', {
+        id: req.user._id,
+        name: req.user.name,
+        role: 'DEPARTMENT_OFFICER',
+        remarks: remarks || `Department action: ${action}`
+      }, action);
+    }
+
     // Fetch fully populated application for frontend state sync
     const populatedApplication = await Application.findById(application._id)
       .populate('scholarshipId')
@@ -592,7 +638,22 @@ const generateSanctionOrder = async (req, res) => {
       changedBy: req.user._id,
       officerName: req.user.name,
       officerRole: 'DEPARTMENT_OFFICER',
-      remarks: `Sanction Order generated: ${sanction.sanctionNumber} for amount ₹${sanction.approvedAmount.toLocaleString('en-IN')}`
+      remarks: `Sanction order generated: ${sanction.sanctionNumber}`
+    });
+
+    // SLP Stage Handling for Sanction Order Generation
+    await slpService.completeStage(application._id, 'APPROVED', {
+      id: req.user._id,
+      name: req.user.name,
+      role: 'DEPARTMENT_OFFICER',
+      remarks: `Official Sanction Order generated: ${sanction.sanctionNumber}`
+    }, 'GENERATE_SANCTION');
+
+    // Start next stage: SANCTIONED (Awaiting DBT Payment Batching)
+    await slpService.startStage(application, 'SANCTIONED', {
+      id: req.user._id,
+      name: req.user.name,
+      role: 'DEPARTMENT_OFFICER'
     });
 
     // Notify Student
@@ -720,6 +781,20 @@ const simulateDisbursement = async (req, res) => {
           officerRole: 'DEPARTMENT_OFFICER',
           remarks: `Payment reference ${payment.paymentReference} sent to Banking Gateway for processing.`
         });
+
+        // SLP: Transition from SANCTIONED to PAYMENT_PROCESSING
+        await slpService.completeStage(application._id, 'SANCTIONED', {
+          id: req.user._id,
+          name: req.user.name,
+          role: 'DEPARTMENT_OFFICER',
+          remarks: `Payment reference ${payment.paymentReference} dispatched to DBT gateway`
+        }, 'PROCESS_PAYMENT');
+
+        await slpService.startStage(application, 'PAYMENT_PROCESSING', {
+          id: req.user._id,
+          name: req.user.name,
+          role: 'DEPARTMENT_OFFICER'
+        });
       }
 
       return res.status(200).json({
@@ -766,6 +841,26 @@ const simulateDisbursement = async (req, res) => {
           officerRole: 'DEPARTMENT_OFFICER',
           remarks: `Disbursement completed via Direct Benefit Transfer (DBT). UTR: ${randomUtr}`
         });
+
+        // SLP: Complete PAYMENT_PROCESSING stage and mark completed
+        await slpService.completeStage(application._id, 'PAYMENT_PROCESSING', {
+          id: req.user._id,
+          name: req.user.name,
+          role: 'DEPARTMENT_OFFICER',
+          remarks: `Direct Benefit Transfer credited with UTR: ${randomUtr}`
+        }, 'DISBURSE');
+
+        await slpService.startStage(application, 'DISBURSED', {
+          id: req.user._id,
+          name: req.user.name,
+          role: 'SYSTEM'
+        });
+        await slpService.completeStage(application._id, 'DISBURSED', {
+          id: req.user._id,
+          name: req.user.name,
+          role: 'SYSTEM',
+          remarks: 'Scholarship disbursement cycle completed.'
+        }, 'DISBURSE');
 
         // In-App Notification for Student
         await createNotification({

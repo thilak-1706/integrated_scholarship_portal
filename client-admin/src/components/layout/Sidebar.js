@@ -12,8 +12,10 @@ import {
   BarChart3,
   Building,
   History,
+  MessageSquare,
   X,
-  Shield
+  Shield,
+  Zap
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -24,6 +26,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       title: 'Central Governance',
       links: [
         { to: '/admin/dashboard', label: 'Command Center', icon: <LayoutDashboard size={18} /> },
+        { to: '/admin/slp', label: 'SLP SLA Monitor', icon: <Zap size={18} /> },
         { to: '/admin/scholarships', label: 'Scheme Portfolio', icon: <GraduationCap size={18} /> },
         { to: '/admin/applications', label: 'Global Applications', icon: <FileText size={18} /> },
       ]
@@ -41,7 +44,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       links: [
         { to: '/admin/reports', label: 'Analytics & Insights', icon: <BarChart3 size={18} /> },
         { to: '/admin/audit-logs', label: 'Security Audit Logs', icon: <History size={18} /> },
-        { to: '/admin/notifications', label: 'System Dispatches', icon: <Bell size={18} /> }
+        { to: '/admin/notifications', label: 'System Dispatches', icon: <Bell size={18} /> },
+        { to: '/admin/feedback', label: 'Feedback Desk', icon: <MessageSquare size={18} /> }
       ]
     }
   ];

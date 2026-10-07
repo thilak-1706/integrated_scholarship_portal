@@ -116,6 +116,44 @@ const StatusBadge = ({ status }) => {
           label: 'Rejected',
           icon: <XCircle size={13} />
         };
+      case 'SLA_BREACHED':
+      case 'SLA DELAYED':
+      case 'SLA_DELAYED':
+        return {
+          bg: '#fefce8',
+          text: '#854d0e',
+          border: '#fde047',
+          dot: '#eab308',
+          label: 'SLA Delayed (Breached)',
+          icon: <AlertTriangle size={13} />
+        };
+      case 'SLA_WARNING':
+        return {
+          bg: '#fffbeb',
+          text: '#b45309',
+          border: '#fde68a',
+          dot: '#f59e0b',
+          label: 'SLA Warning',
+          icon: <Clock size={13} />
+        };
+      case 'COMPLETED_AFTER_SLA':
+        return {
+          bg: '#fefce8',
+          text: '#a16207',
+          border: '#fef08a',
+          dot: '#ca8a04',
+          label: 'Completed (After SLA)',
+          icon: <CheckCircle2 size={13} />
+        };
+      case 'COMPLETED_WITHIN_SLA':
+        return {
+          bg: '#ecfdf5',
+          text: '#047857',
+          border: '#a7f3d0',
+          dot: '#10b981',
+          label: 'Completed Within SLA',
+          icon: <CheckCircle2 size={13} />
+        };
       default:
         return {
           bg: '#f8fafc',

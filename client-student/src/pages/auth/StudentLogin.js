@@ -33,7 +33,7 @@ const StudentLogin = () => {
       {/* Main Content */}
       <main className="container my-auto py-4 py-md-5 px-3 px-sm-4">
         <div className="row justify-content-center align-items-center g-4">
-          
+
           {/* Left Hero Box (Desktop) */}
           <div className="col-12 col-lg-6 text-light d-none d-lg-block pe-lg-5">
             <div className="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 px-3 py-2 rounded-pill mb-3 fw-semibold">
@@ -65,7 +65,7 @@ const StudentLogin = () => {
           {/* Right Login Card */}
           <div className="col-12 col-md-8 col-lg-6 col-xl-5">
             <div className="custom-card p-3 p-sm-4 p-md-5 bg-white shadow-2xl border-0 rounded-4 text-dark">
-              
+
               <div className="d-flex align-items-center gap-3 mb-4">
                 <div className="p-3 rounded-3 bg-primary text-white shadow-sm flex-shrink-0">
                   <GraduationCap size={28} />

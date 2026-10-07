@@ -9,13 +9,15 @@ import {
   AlertTriangle,
   XCircle,
   User,
-  ArrowLeft
+  ArrowLeft,
+  Zap
 } from 'lucide-react';
 
 const InstituteVerification = () => {
   const { id } = useParams();
 
   const [application, setApplication] = useState(null);
+  const [slpTracking, setSlpTracking] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Verification Checklist & Form state
@@ -40,6 +42,17 @@ const InstituteVerification = () => {
       const res = await api.get(`/institute/applications/${id}`);
       if (res.data.success) {
         setApplication(res.data.application);
+        if (res.data.slpTracking) {
+          setSlpTracking(res.data.slpTracking);
+        } else {
+          // Fallback fetch SLP tracking
+          try {
+            const slpRes = await api.get(`/slp/tracking/${id}`);
+            if (slpRes.data.success) {
+              setSlpTracking(slpRes.data.slpTracking);
+            }
+          } catch (_) {}
+        }
         if (res.data.application.instituteVerification?.checklist) {
           setChecklist((prev) => ({
             ...prev,
@@ -157,6 +170,35 @@ const InstituteVerification = () => {
         <div className={`alert alert-${feedback.type} py-2.5 mb-4 d-flex align-items-center gap-2`}>
           {feedback.type === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
           <span className="text-break">{feedback.message}</span>
+        </div>
+      )}
+
+      {/* SLP SLA Live Status Card */}
+      {slpTracking && (
+        <div
+          className={`p-3 rounded-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-xs ${
+            slpTracking.slaStatus === 'SLA_BREACHED'
+              ? 'border border-warning bg-warning bg-opacity-10 text-dark'
+              : 'border border-primary border-opacity-25 bg-primary bg-opacity-10 text-dark'
+          }`}
+          style={{ borderLeft: slpTracking.slaStatus === 'SLA_BREACHED' ? '4px solid #eab308' : '4px solid #3b82f6' }}
+        >
+          <div className="d-flex align-items-center gap-2">
+            <Zap size={18} className={slpTracking.slaStatus === 'SLA_BREACHED' ? 'text-warning' : 'text-primary'} />
+            <div>
+              <span className="fw-bold me-2">
+                {slpTracking.slaStatus === 'SLA_BREACHED' ? '⚠️ SLA BREACHED — Action Overdue' : '⏱️ Institute Verification SLA Active'}
+              </span>
+              <span className="small text-secondary">
+                Target SLA: 01:00 &bull; {slpTracking.slaStatus === 'SLA_BREACHED' ? 'Automatically Escalated to Central Admin Review' : 'Within Allowed Target'}
+              </span>
+            </div>
+          </div>
+          {slpTracking.slaStatus === 'SLA_BREACHED' && (
+            <span className="badge badge-sla-breached px-3 py-1.5 fw-bold">
+              SLA DELAYED &bull; LEVEL 1 ESCALATED
+            </span>
+          )}
         </div>
       )}
 

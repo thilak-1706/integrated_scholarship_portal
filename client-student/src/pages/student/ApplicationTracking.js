@@ -18,6 +18,7 @@ const ApplicationTracking = () => {
 
   const [application, setApplication] = useState(null);
   const [auditLogs, setAuditLogs] = useState([]);
+  const [slpTracking, setSlpTracking] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Correction Form state
@@ -40,6 +41,7 @@ const ApplicationTracking = () => {
       if (res.data.success) {
         setApplication(res.data.application);
         setAuditLogs(res.data.auditLogs || []);
+        setSlpTracking(res.data.slpTracking || null);
       }
     } catch (err) {
       console.error('Failed to load application details:', err);
@@ -121,6 +123,12 @@ const ApplicationTracking = () => {
             <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
               <span className="fw-bold text-primary fs-5 text-break">{application.applicationNumber}</span>
               <StatusBadge status={effectiveStatus} />
+              {slpTracking?.slaStatus === 'SLA_BREACHED' && (
+                <span className="badge badge-sla-breached d-inline-flex align-items-center gap-1 px-2.5 py-1">
+                  <AlertTriangle size={13} />
+                  SLA Delayed (Breached)
+                </span>
+              )}
             </div>
             <h5 className="fw-bold text-dark mb-1 responsive-title">{application.scholarshipName}</h5>
             <div className="text-muted small">
@@ -190,6 +198,7 @@ const ApplicationTracking = () => {
               currentStatus={effectiveStatus}
               auditLogs={auditLogs}
               applicationDetails={application}
+              slpTracking={slpTracking}
             />
           </div>
         </div>

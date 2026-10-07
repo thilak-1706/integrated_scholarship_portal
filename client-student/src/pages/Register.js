@@ -284,7 +284,7 @@ const Register = () => {
   return (
     <div className="bg-light min-vh-100 py-4">
       <div className="container">
-        
+
         {/* Top Header Card */}
         <div className="card border-0 shadow-sm rounded-4 mb-4 bg-primary text-white p-4">
           <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between">
@@ -317,7 +317,7 @@ const Register = () => {
             </div>
             <div className="card-body p-4">
               <div className="row g-3">
-                
+
                 {/* Choose Photo */}
                 <div className="col-12 col-md-6 col-lg-4">
                   <label className="form-label fw-semibold text-secondary">Choose Photo</label>
@@ -609,7 +609,7 @@ const Register = () => {
             </div>
             <div className="card-body p-4">
               <div className="row g-3">
-                
+
                 {/* College Name */}
                 <div className="col-12 col-md-6">
                   <label className="form-label fw-semibold text-secondary">College Name <span className="text-danger">*</span></label>
@@ -786,7 +786,7 @@ const Register = () => {
               </h5>
             </div>
             <div className="card-body p-4">
-              
+
               {/* Sub-section: SSLC */}
               <div className="p-3 bg-light rounded-3 mb-4 border">
                 <h6 className="fw-bold text-dark mb-3">

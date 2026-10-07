@@ -579,10 +579,24 @@ const getAdminApplications = async (req, res) => {
       .populate('paymentId')
       .sort({ createdAt: -1 });
 
+    const SLPTracking = require('../models/SLPTracking');
+    const appIds = applications.map((a) => a._id);
+    const slpTrackings = await SLPTracking.find({ applicationId: { $in: appIds } });
+    const slpMap = {};
+    slpTrackings.forEach((t) => {
+      slpMap[t.applicationId.toString()] = t;
+    });
+
+    const enrichedApplications = applications.map((app) => {
+      const appObj = app.toObject();
+      appObj.slpTracking = slpMap[app._id.toString()] || null;
+      return appObj;
+    });
+
     return res.status(200).json({
       success: true,
-      count: applications.length,
-      applications
+      count: enrichedApplications.length,
+      applications: enrichedApplications
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
