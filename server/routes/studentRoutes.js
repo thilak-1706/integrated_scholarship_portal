@@ -23,6 +23,8 @@ router.get('/dashboard', protect, authorizeRoles('STUDENT'), getStudentDashboard
 router.post('/apply/:id', protect, authorizeRoles('STUDENT'), applyScholarship);
 router.get('/applications', protect, authorizeRoles('STUDENT'), getMyApplications);
 router.get('/applications/:id', protect, getApplicationDetails);
+const { downloadSanctionPdf } = require('../controllers/emailController');
+router.get('/applications/:id/sanction-pdf', protect, downloadSanctionPdf);
 router.put('/applications/:id/resubmit-correction', protect, authorizeRoles('STUDENT'), resubmitCorrection);
 router.get('/payments', protect, authorizeRoles('STUDENT'), getMyPayments);
 router.get('/notifications', protect, getNotifications);

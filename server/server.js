@@ -15,6 +15,7 @@ const adminPortalRoutes = require('./routes/adminPortalRoutes');
 const seedRoutes = require('./routes/seedRoutes');
 const slpRoutes = require('./routes/slpRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
+const emailRoutes = require('./routes/emailRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -47,6 +48,7 @@ app.use('/api/admin', adminPortalRoutes);
 app.use('/api/seed', seedRoutes);
 app.use('/api/slp', slpRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/emails', emailRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
@@ -67,18 +69,21 @@ initSocketIO(server);
 // Start SLP Background Engine
 startSlpEngine();
 
-server.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(` National Scholarship API Server running on port ${PORT}`);
-  console.log(` API Endpoints mounted:`);
-  console.log(`   - Auth & Profile:       /api/auth`);
-  console.log(`   - Student Portal:       /api/student`);
-  console.log(`   - Institute Portal:     /api/institute`);
-  console.log(`   - Department Portal:    /api/department`);
-  console.log(`   - Admin Portal:         /api/admin`);
-  console.log(`   - Seed Demo Data:       /api/seed`);
-  console.log(`   - SLP Service Engine:   /api/slp`);
-  console.log(`====================================================`);
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`====================================================`);
+    console.log(` National Scholarship API Server running on port ${PORT}`);
+    console.log(` API Endpoints mounted:`);
+    console.log(`   - Auth & Profile:       /api/auth`);
+    console.log(`   - Student Portal:       /api/student`);
+    console.log(`   - Institute Portal:     /api/institute`);
+    console.log(`   - Department Portal:    /api/department`);
+    console.log(`   - Admin Portal:         /api/admin`);
+    console.log(`   - Seed Demo Data:       /api/seed`);
+    console.log(`   - SLP Service Engine:   /api/slp`);
+    console.log(`   - Automated Emails:     /api/emails`);
+    console.log(`====================================================`);
+  });
+}
 
 module.exports = app;

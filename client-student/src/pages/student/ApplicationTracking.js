@@ -9,7 +9,8 @@ import {
   AlertTriangle,
   Send,
   Printer,
-  CheckCircle
+  CheckCircle,
+  Download
 } from 'lucide-react';
 
 const ApplicationTracking = () => {
@@ -148,13 +149,25 @@ const ApplicationTracking = () => {
             )}
 
             {application.sanctionNumber && (
-              <button
-                onClick={() => window.print()}
-                className="btn btn-outline-secondary d-flex align-items-center gap-2"
-              >
-                <Printer size={16} />
-                <span className="d-none d-sm-inline">Print Sanction / Application</span>
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    const token = localStorage.getItem('token');
+                    window.open(`http://localhost:5000/api/student/applications/${application._id}/sanction-pdf?token=${token}`, '_blank');
+                  }}
+                  className="btn btn-outline-primary d-flex align-items-center gap-2"
+                >
+                  <Download size={16} />
+                  <span className="d-none d-sm-inline">Download Sanction PDF</span>
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="btn btn-outline-secondary d-flex align-items-center gap-2"
+                >
+                  <Printer size={16} />
+                  <span className="d-none d-sm-inline">Print</span>
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -250,6 +263,16 @@ const ApplicationTracking = () => {
                 <Award size={20} />
                 <h5 className="fw-bold text-dark mb-0">Official Sanction & Disbursement Order</h5>
               </div>
+
+              {application.sanctionNumber && (
+                <div className="alert alert-success d-flex align-items-center gap-2 mb-3 py-2">
+                  <CheckCircle size={18} className="text-success flex-shrink-0" />
+                  <div>
+                    <strong className="d-block text-success">✓ Sanction Order Generated</strong>
+                    <div className="small text-dark">Sanction Order has been sent to your registered email.</div>
+                  </div>
+                </div>
+              )}
 
               <div className="row g-3" style={{ fontSize: '0.88rem' }}>
                 {application.sanctionNumber && (

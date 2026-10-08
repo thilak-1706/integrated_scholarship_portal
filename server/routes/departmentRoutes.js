@@ -24,6 +24,8 @@ router.get('/applications/:id', getDepartmentApplicationById);
 router.post('/applications/:id/verify', verifyDepartmentApplication);
 router.post('/sanctions/generate', generateSanctionOrder);
 router.get('/sanctions', getSanctions);
+const { downloadSanctionPdf } = require('../controllers/emailController');
+router.get('/sanctions/:id/pdf', downloadSanctionPdf);
 router.get('/disbursement', getDisbursements);
 router.post('/disbursement/:id/simulate', simulateDisbursement);
 router.get('/reports', getDepartmentReports);

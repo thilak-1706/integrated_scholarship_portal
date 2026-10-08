@@ -37,11 +37,23 @@ The architecture is engineered as a **distributed multi-portal system**, orchest
   - [SLA State Lifecycle & Visual Identifiers](#sla-state-lifecycle--visual-identifiers)
   - [Zero-Disruption Escalation Principle](#zero-disruption-escalation-principle)
   - [Central Admin SLP Monitor Dashboard](#central-admin-slp-monitor-dashboard)
-- [REST API Reference](#-rest-api-reference)
+- [📧 Automated Sanction Order Email & PDF Dispatch System](#-automated-sanction-order-email--pdf-dispatch-system)
+  - [Dedicated Workflow Trigger & Stage Isolation](#dedicated-workflow-trigger--stage-isolation)
+  - [Government-Styled PDF Sanction Order Generation](#government-styled-pdf-sanction-order-generation)
+  - [Nodemailer SMTP Architecture & Gmail SSL Configuration](#nodemailer-smtp-architecture--gmail-ssl-configuration)
+  - [Central Admin Email Dispatch Monitor & Live Retry](#central-admin-email-dispatch-monitor--live-retry)
+  - [Statutory Sanction Email Template](#statutory-sanction-email-template)
+- [📡 REST API Reference](#-rest-api-reference)
   - [SLP Performance & Escalation Endpoints](#-slp-performance--escalation-endpoints-apislp)
-- [Automated Verification & Test Suites](#-automated-verification--test-suites)
-- [Security & Architecture Highlights](#-security--architecture-highlights)
-- [License](#-license)
+  - [Automated Email Dispatch Endpoints](#-automated-email-dispatch-endpoints-apiemails--apiadmin)
+- [🧪 Automated Verification & Test Suites](#-automated-verification--test-suites)
+  - [1. Automated Sanction Email & PDF Test Suite](#1-automated-sanction-email--statutory-pdf-test-suite-test_sanction_email_workflowjs)
+  - [2. SLP Demo Mode & Auto-Escalation Suite](#2-slp-demo-mode--auto-escalation-suite-test_slp_demo_flowjs)
+  - [3. Strict 5-Stage Sequential Workflow Test](#3-strict-5-stage-sequential-workflow-test-test_workflow_sequencejs)
+  - [4. Full End-to-End Test](#4-full-end-to-end-test-test_e2e_flowjs)
+  - [5. Student-to-Institute Scrutiny Flow](#5-student-to-institute-scrutiny-flow-test_student_institute_flowjs)
+- [🔒 Security & Architecture Highlights](#-security--architecture-highlights)
+- [📄 License](#-license)
 
 ---
 
@@ -61,6 +73,8 @@ flowchart TD
     F -- Eligibility Invalidation --> D
     F -- Approves Application --> G[Stage 3: APPROVED]
     G --> H[Stage 4: SANCTIONED - Official Sanction Order Generated]
+    H -. Automated Event Trigger .-> H1[📄 Compile Signed Sanction Order PDF<br/>+ 📧 Dispatch Official Email with Attachment]
+    H1 -. Log Lifecycle .-> H2[(EmailLog: PENDING ➔ SENT / FAILED)]
     H --> I[Stage 5: PAYMENT_PROCESSING - DBT Batch Scheduled]
     I --> J[Stage 6: DISBURSED - Funds Credited with Bank UTR]
     J --> K([Live Audit Trail & Student Notification])
@@ -76,6 +90,7 @@ sequenceDiagram
     actor Dept as 🏢 Department Officer (:3002)
     actor Admin as ⚙️ Central Admin (:3003)
     participant API as 🚀 Express API (:5000)
+    participant Mailer as ✉️ SMTP Engine (Nodemailer)
     participant DB as 🍃 MongoDB
 
     Admin->>API: Configure Schemes, Departments & Colleges
@@ -91,10 +106,18 @@ sequenceDiagram
     API->>DB: Update Status to APPROVED
     Dept->>API: Generate Sanction Order with unique Sanction Number
     API->>DB: Create Sanction Record (Status: SANCTIONED)
+    Note over API,Mailer: Automated Sanction Order Email Trigger (Isolated)
+    API->>API: Generate Statutory PDF (Sanction_Order_SAN-XXXX.pdf)
+    API->>DB: Record EmailLog (Status: PENDING)
+    API->>Mailer: Dispatch Email via Gmail SSL with PDF Attachment
+    Mailer-->>Student: Deliver Official Sanction Order Email with Attachment
+    Mailer-->>API: SMTP 250 2.0.0 OK (Accepted by mail server)
+    API->>DB: Update EmailLog (Status: SENT, Message-ID, SmtpResponse)
+    Note over Dept,DB: DBT Payment Disbursement Stage
     Dept->>API: Process DBT Batch with Bank UTR IDs
     API->>DB: Commit Payment Records (Status: DISBURSED)
     API-->>Student: Update Payment Ledger & Milestone Stepper
-    API-->>Admin: Record Immutable Audit Log
+    API-->>Admin: Record Immutable Audit Log & Email Monitor Feed
 ```
 
 ---
@@ -163,6 +186,7 @@ sequenceDiagram
   - Filter approved applications ready for sanctioning.
   - Batch generation of official Sanction Orders with auto-generated unique Sanction Numbers (e.g., `SAN-2026-XXXX`).
   - Allocation of committed grant amounts deducted against the department's authorized budget.
+  - **Automated PDF & Email Dispatch Trigger**: Synchronously compiles the formal, digitally signed Sanction Order PDF (`Sanction_Order_SAN-XXXX.pdf`) and triggers the SMTP engine to email the student directly with the PDF attached. Non-blocking error containment ensures sanctioning remains intact even if SMTP experiences transient network outages.
 - **DBT Payment Disbursement Batching (`/department/disbursement`)**:
   - Queue of sanctioned candidates awaiting Direct Benefit Transfer.
   - Batch processing interface simulating secure PFMS / DBT gateway payout execution.
@@ -192,6 +216,11 @@ sequenceDiagram
   - Reset passwords, activate/suspend accounts, or provision new administrative users.
 - **Master Applications Inspector (`/admin/applications`)**:
   - Unrestricted view of every application across all institutions, departments, and stages with search and stage filters.
+- **Automated Sanction Email Dispatch Monitor (`/admin/email-logs`)**:
+  - Real-time audit dashboard for all official sanction emails dispatched to scholarship recipients.
+  - Live inspection table: Date & Time, Student Name, Application Number, Sanction Number, Recipient Email Address, Status Badge (`SENT`, `FAILED (SMTP_ERROR)`, `PENDING`), Attachment name with direct PDF download, and Actions.
+  - Granular SMTP failure diagnostics: Exposes error codes (e.g., `EAUTH`, `ECONNREFUSED`, `ESOCKET`) with actionable hover tooltips.
+  - **One-Click Email Retry**: Admin can immediately re-dispatch any failed or unacknowledged sanction email; the server re-verifies the PDF attachment and updates the delivery status in real time.
 - **Central Analytics & Reports (`/admin/reports`)**:
   - Consolidated fund disbursement summaries, scheme performance benchmarks, and institutional audit scores.
 - **Tamper-Evident System Audit Trail (`/admin/audit-logs`)**:
@@ -212,6 +241,8 @@ sequenceDiagram
 | **Backend Runtime** | Node.js (v18+) & Express.js (v4.18) | RESTful API server, routing controllers, and validation |
 | **Database & ODM** | MongoDB & Mongoose (v8.0) | Document schema definitions, indexes, and transactional consistency |
 | **Authentication** | JSON Web Tokens (JWT) & BcryptJS | Stateless bearer authentication and salted password hashing |
+| **Email Delivery (SMTP)** | Nodemailer (v10.0) | Automated transactional dispatch with TLS/SSL, attachments, and retry support |
+| **PDF Document Generation** | PDFKit (v0.20) | Dynamic generation of official, digitally signed government Sanction Orders |
 
 ---
 
@@ -221,16 +252,19 @@ sequenceDiagram
 national-scholarship-system/
 ├── server/                             # Central Express REST API Backend (Port 5000)
 │   ├── config/
-│   │   └── db.js                       # MongoDB connection configuration
+│   │   ├── db.js                       # MongoDB connection configuration
+│   │   └── slpConfig.js                # SLP SLA durations, modes & ticker intervals
 │   ├── controllers/
 │   │   ├── authController.js           # Registration, login, profile, institutional lists
 │   │   ├── studentController.js        # Application submission, tracking, student payments
 │   │   ├── instituteController.js      # College scrutiny, verification, student directory
 │   │   ├── departmentController.js     # Scrutiny, sanction generation, DBT payout, reports
 │   │   ├── adminPortalController.js    # System CRUD, users, applications, immutable audit logs
+│   │   ├── emailController.js          # Email dispatch audit logs query, retry & PDF download
 │   │   └── seedController.js           # Master data seeder (colleges, ministries, schemes, officers)
 │   ├── middleware/
-│   │   └── auth.js                     # JWT verification & RBAC role guards
+│   │   ├── auth.js                     # JWT verification & RBAC role guards
+│   │   └── authMiddleware.js           # Protect & role authorization handlers
 │   ├── models/
 │   │   ├── User.js                     # Unified User & Profile model (RBAC)
 │   │   ├── Application.js              # 7-stage scholarship application state machine
@@ -240,21 +274,32 @@ national-scholarship-system/
 │   │   ├── Sanction.js                 # Official sanction orders & committed funds
 │   │   ├── Payment.js                  # DBT disbursement records & UTR transaction ledger
 │   │   ├── AuditLog.js                 # Immutable activity log with actor, role, IP, timestamps
-│   │   └── Notification.js             # Role-targeted alerts and system broadcasts
+│   │   ├── Notification.js             # Role-targeted alerts and system broadcasts
+│   │   └── EmailLog.js                 # Automated email dispatch logs (SENT, FAILED, PENDING, retries)
 │   ├── routes/
 │   │   ├── authRoutes.js               # /api/auth
 │   │   ├── studentRoutes.js            # /api/student
 │   │   ├── instituteRoutes.js          # /api/institute
 │   │   ├── departmentRoutes.js         # /api/department
 │   │   ├── adminPortalRoutes.js        # /api/admin
+│   │   ├── emailRoutes.js              # /api/emails (monitoring, retry, download)
+│   │   ├── slpRoutes.js                # /api/slp
 │   │   └── seedRoutes.js               # /api/seed
+│   ├── services/
+│   │   ├── emailService.js             # Nodemailer transporter, templates, dispatch & retry engine
+│   │   ├── pdfService.js               # Official Sanction Order PDF generator (PDFKit)
+│   │   └── slpService.js               # SLP SLA heartbeat & escalation engine
+│   ├── uploads/
+│   │   └── sanctions/                  # Generated official Sanction Order PDFs (PDFKit output)
+│   ├── test_sanction_email_workflow.js # E2E Sanction PDF & SMTP email dispatch test suite
+│   ├── test_slp_demo_flow.js           # 1-minute demo SLA auto-escalation test
 │   ├── test_e2e_flow.js                # Full lifecycle automated test script
 │   ├── test_workflow_sequence.js       # 5-stage strict sequential workflow validator
 │   ├── test_student_institute_flow.js  # Student submission to institute scrutiny test
 │   ├── verify_real_student_workflow.js # Real applicant registration & tracking validator
 │   ├── package.json
-│   ├── .env                            # Server port, MongoDB URI & JWT secret
-│   └── server.js                       # Server entry point & route mounting
+│   ├── .env                            # Server port, MongoDB URI, JWT secret & SMTP credentials
+│   └── server.js                       # Server entry point, route mounting & background tickers
 │
 ├── client-institute/                   # Institute Nodal Officer Portal (Port 3000)
 │   ├── src/
@@ -291,7 +336,7 @@ national-scholarship-system/
 │   │   ├── components/common/          # Navbar, Sidebar, ProtectedRoute
 │   │   ├── context/AuthContext.js      # Administrator authentication state
 │   │   ├── pages/auth/AdminLogin.js    # Central administrator login page
-│   │   ├── pages/admin/                # Dashboard, Schemes, Departments, Institutes, Users, Audit
+│   │   ├── pages/admin/                # Dashboard, Schemes, Departments, Institutes, Users, Audit, SLP, AdminEmailLogs
 │   │   └── services/api.js             # Axios client with JWT interceptor
 │   ├── .env                            # PORT=3003
 │   └── package.json
@@ -308,6 +353,7 @@ national-scholarship-system/
 - **Node.js**: v18.0.0 or higher
 - **npm**: v9.0.0 or higher
 - **MongoDB**: Local MongoDB instance running on `mongodb://127.0.0.1:27017` or MongoDB Atlas URI.
+- **Gmail Account or SMTP Relay**: Required for real email delivery (standard Gmail App Password).
 
 ---
 
@@ -329,6 +375,19 @@ national-scholarship-system/
    MONGO_URI=mongodb://127.0.0.1:27017/national_scholarship_details
    JWT_SECRET=national_scholarship_secret_key_2026_jwt
    NODE_ENV=development
+
+   # Service Level Performance (SLP) Engine
+   SLP_MODE=DEMO
+
+   # Automated Sanction Order Email Dispatch (Gmail SMTP)
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=465
+   SMTP_SECURE=true
+   SMTP_USER=your_email@gmail.com
+   SMTP_PASSWORD=your_16_char_gmail_app_password
+   MAIL_FROM="National Scholarship Portal <your_email@gmail.com>"
+   MAIL_FROM_NAME="National Scholarship Portal"
+   STUDENT_PORTAL_URL=http://localhost:3001
    ```
 
 4. Start the backend API server:
@@ -502,6 +561,17 @@ After running the database seeder, the following administrative and nodal office
 
 ---
 
+### 📧 Automated Email Dispatch Endpoints (`/api/emails` & `/api/admin`)
+| Method | Endpoint | Access | Description |
+|---|---|---|---|
+| `GET` | `/api/admin/email-logs` | Admin | Retrieve paginated audit logs of all automated sanction emails with filtering by status/search |
+| `POST`| `/api/admin/email-logs/:id/retry` | Admin | Manually trigger immediate re-dispatch of a failed or pending sanction email |
+| `GET` | `/api/emails/logs` | Admin / Officers | Query email delivery logs, inspect SMTP response payloads, error codes, and message IDs |
+| `POST`| `/api/emails/logs/:id/retry` | Admin / Officers | Service-level email retry handler; regenerates PDF attachment if missing and executes SMTP delivery |
+| `GET` | `/api/emails/download/:filename` | Authenticated / Admin | Stream and download official generated Sanction Order PDF (`Sanction_Order_SAN-XXXX.pdf`) |
+
+---
+
 ### 🛠️ System Endpoints
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
@@ -579,13 +649,139 @@ Available on the Central Admin Portal at `http://localhost:3003/admin/slp`:
 
 ---
 
+## 📧 Automated Sanction Order Email & PDF Dispatch System
+
+The National Scholarship System features a statutory, end-to-end **Automated Sanction Order Email & PDF Dispatch System** engineered to provide transparent, tamper-evident notification to students upon scholarship sanctioning.
+
+### Dedicated Workflow Trigger & Stage Isolation
+
+In strict accordance with government workflow integrity, the email dispatch engine is **isolated exclusively to Stage 4 (SANCTIONED)**:
+
+```
+[ Institute Scrutiny ] ──> [ Department Approval ] ──> [ Sanction Order Created ]
+                                                                   ↓
+                                                     ┌───────────────────────────┐
+                                                     │  AUTOMATED EMAIL TRIGGER  │
+                                                     │  • Generate Statutory PDF │
+                                                     │  • Connect Gmail SSL:465  │
+                                                     │  • Dispatch with PDF      │
+                                                     │  • Audit in EmailLog      │
+                                                     └───────────────────────────┘
+```
+
+> [!IMPORTANT]
+> **Strict Stage Isolation Policy:**
+> - Email dispatch is triggered **ONLY** when a Department Nodal Officer issues an official Sanction Order.
+> - **NO emails are dispatched** for Application Submission, Institute Verification, Correction Requests, Rejections, DBT Payment Processing, Disbursement, or SLA Breaches.
+> - **Fault-Tolerant Isolation:** If the mail server or network experiences a transient failure, the failure is caught, logged in `EmailLog` as `FAILED (SMTP_ERROR)`, and **never rolls back or disrupts** the database sanction order or department workflow.
+
+---
+
+### Government-Styled PDF Sanction Order Generation
+
+Upon sanction approval, the server invokes the `pdfService` (powered by `pdfkit`) to dynamically compile an official, statutory Sanction Order document saved to `server/uploads/sanctions/Sanction_Order_[SanctionNumber].pdf`:
+
+- **Statutory National Header**: Government emblem branding, Ministry/Department name, and State Nodal Directorate authority.
+- **Reference Metadata**: Unique statutory Sanction Number (e.g. `SAN-2026-510607`), Sanction Order Date, and Application Number.
+- **Beneficiary Details**: Student Name, Registered Email Address, Institute/College Affiliation, and Course Details.
+- **Financial Allotment Table**: Sanctioned Scheme Name, Academic Year, and Approved Scholarship Grant Amount formatted in INR (`₹`).
+- **DBT Banking Compliance**: Beneficiary Bank Name, Masked Account Number, and IFSC verification note.
+- **Digital Authenticity Stamp**: Embedded nodal officer signature box, digital authorization timestamp, and verification badge.
+
+---
+
+### Nodemailer SMTP Architecture & Gmail SSL Configuration
+
+The email engine in `server/services/emailService.js` manages SMTP handshakes with enterprise resilience:
+
+1. **Port & Security Configuration**:
+   - **Port 465**: Enforces SSL (`secure: true`).
+   - **Port 587**: Enforces STARTTLS (`secure: false`).
+2. **Gmail App Password Handling**:
+   - Strips incidental whitespace from 16-character Google App Passwords automatically (`replace(/\s+/g, '')`).
+3. **Pre-Flight Handshake Verification**:
+   - Executes `await transporter.verify()` before attempting mail transport, validating credentials and server availability with explicit console telemetry:
+     ```text
+     ====================================================
+     [SANCTION EMAIL]
+     Recipient: kowsalya.bt23@bitsathy.ac.in
+     Subject: Scholarship Sanction Approved — SAN-2026-510607
+     PDF: uploads\sanctions\Sanction_Order_SAN-2026-510607.pdf
+     SMTP Host: smtp.gmail.com
+     SMTP Port: 465
+
+     [SMTP]
+     Connection: SUCCESS
+
+     [EMAIL]
+     Message ID: <4dd2c251-3eb7-ba57-67bb-4a30814a88b0@gmail.com>
+     Accepted: [ 'kowsalya.bt23@bitsathy.ac.in' ]
+     Rejected: []
+     Response: 250 2.0.0 OK 1791362204 - gsmtp
+     ====================================================
+     ```
+4. **Real Delivery Guarantee**:
+   - The system checks `info.accepted` and `info.rejected` arrays returned by the SMTP relay.
+   - The status is marked as `SENT` **only** if the recipient address is present in `info.accepted` and absent from `info.rejected`.
+   - Never fakes delivery; any error updates `EmailLog` to `FAILED` with exact `errorCode` and `errorMessage`.
+
+---
+
+### Central Admin Email Dispatch Monitor & Live Retry
+
+Administrators have full oversight of all automated emails via the **Central Admin Portal** (`http://localhost:3003/admin/email-logs`):
+
+| UI Column | Data Rendered | Details |
+|---|---|---|
+| **Date & Time** | Localized timestamp | Timestamp when the dispatch was initiated |
+| **Student** | Beneficiary Full Name | Applicant name as recorded in application |
+| **Application Number** | `APP-2026-XXXXXX` | Clickable reference link |
+| **Sanction Number** | `SAN-2026-XXXXXX` | Statutory Sanction Reference ID |
+| **Recipient Email** | Student Email Address | Verified student destination inbox |
+| **Email Status** | `SENT` / `FAILED` / `PENDING` | Color-coded badge with hover tooltip displaying failure reason if failed |
+| **Attachment** | `Sanction_Order_SAN-XXXX.pdf` | Direct link to preview or download the generated PDF |
+| **Actions** | `🔄 RETRY EMAIL` | One-click button to re-trigger real SMTP delivery |
+
+#### One-Click Retry Engine
+When an administrator clicks **RETRY EMAIL** for a failed dispatch:
+1. The server fetches the `EmailLog` entry and verifies the PDF attachment on disk (auto-regenerates if missing).
+2. Increments `retryCount`.
+3. Re-dispatches the email through Nodemailer with the real PDF attachment.
+4. Updates the record in MongoDB to `SENT`, saving the new `messageId`, `smtpResponse`, and clearing previous errors.
+
+---
+
+### Statutory Sanction Email Template
+
+The applicant receives a formal, high-impact HTML notification containing:
+- **Ministry Banner**: Official National Scholarship System header and emblem styling.
+- **Congratulatory Notice**: Formal sanction announcement addressed directly to the student.
+- **Detailed Summary Box**: Scheme Name, Sanction Number, Sanction Date, and Approved Grant Amount in Indian Rupees.
+- **Attachment Notice**: Informs the student that the legal, digitally signed Sanction Order PDF is attached for official records and college bursar submissions.
+- **Security Notice**: Clear guidance emphasizing that scholarship funds are credited exclusively through Direct Benefit Transfer (DBT) and officers will never solicit OTPs or banking PINs.
+
 ---
 
 ## 🧪 Automated Verification & Test Suites
 
 The `server` directory contains comprehensive automated verification scripts that test the entire multi-portal lifecycle programmatically:
 
-### 1. SLP Demo Mode & Auto-Escalation Suite (`test_slp_demo_flow.js`)
+### 1. Automated Sanction Email & Statutory PDF Test Suite (`test_sanction_email_workflow.js`)
+Validates the complete Sanction Order generation, PDF compilation, SMTP email dispatch, and Admin retry lifecycle:
+- Registers a real student account and submits an application for an active scheme.
+- Authenticates the Institute Nodal Officer and verifies the application (`INSTITUTE_VERIFIED`).
+- Authenticates the Department Nodal Officer and approves the application (`APPROVED`).
+- Generates the official Sanction Order, triggering the PDF generator and Nodemailer dispatcher.
+- Confirms the PDF exists in `server/uploads/sanctions/` with non-zero byte size.
+- Verifies the `EmailLog` database document is created with `emailType: 'SANCTION_APPROVED'`, `sanctionNumber`, and recipient email.
+- Executes the Admin Email Retry endpoint (`/api/admin/email-logs/:id/retry`) and confirms delivery audit updates (`retryCount: 1`).
+
+```bash
+cd server
+node test_sanction_email_workflow.js
+```
+
+### 2. SLP Demo Mode & Auto-Escalation Suite (`test_slp_demo_flow.js`)
 Validates the full SLP 1-minute demo SLA, auto-escalation, breach warnings, and resolution flow:
 - Validates public SLP configuration endpoint (`DEMO` mode, 60s SLA).
 - Registers a new student and submits an application, initiating the 60s SLA timer.
@@ -602,7 +798,7 @@ cd server
 node test_slp_demo_flow.js
 ```
 
-### 2. Strict 5-Stage Sequential Workflow Test (`test_workflow_sequence.js`)
+### 3. Strict 5-Stage Sequential Workflow Test (`test_workflow_sequence.js`)
 Validates that an application transitions strictly through each queue and is visible only to the appropriate officer at each stage:
 - Registers a new student and submits an application.
 - Confirms visibility in the Institute queue and absence from the Department queue.
@@ -616,7 +812,7 @@ cd server
 node test_workflow_sequence.js
 ```
 
-### 3. Full End-to-End Test (`test_e2e_flow.js`)
+### 4. Full End-to-End Test (`test_e2e_flow.js`)
 Simulates the entire multi-user operational journey:
 - Health check & database seeder verification.
 - Student account registration & profile biodata completion.
@@ -631,7 +827,7 @@ cd server
 node test_e2e_flow.js
 ```
 
-### 4. Student-to-Institute Scrutiny Flow (`test_student_institute_flow.js`)
+### 5. Student-to-Institute Scrutiny Flow (`test_student_institute_flow.js`)
 Focuses on registration, document checks, and institute officer defect/verification actions:
 ```bash
 cd server

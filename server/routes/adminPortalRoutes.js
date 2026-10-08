@@ -62,4 +62,9 @@ router.get('/audit-logs', getAuditLogs);
 router.get('/notifications', getAdminNotifications);
 router.post('/notifications/broadcast', sendBroadcastNotification);
 
+// Email Dispatch Monitoring
+const { getEmailLogs, retryEmailDispatch } = require('../controllers/emailController');
+router.get('/email-logs', getEmailLogs);
+router.post('/email-logs/:id/retry', retryEmailDispatch);
+
 module.exports = router;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import PortalLayout from '../../components/layout/PortalLayout';
 import api from '../../services/api';
-import { Award, Printer, CheckCircle, PlusCircle, ShieldCheck } from 'lucide-react';
+import { Award, Printer, CheckCircle, PlusCircle, ShieldCheck, Download } from 'lucide-react';
 
 const DepartmentSanctions = () => {
   const [sanctions, setSanctions] = useState([]);
@@ -228,13 +228,23 @@ const DepartmentSanctions = () => {
                   </div>
                 </div>
 
-                <div className="no-print pt-3 border-top">
+                <div className="no-print pt-3 border-top d-flex gap-2">
                   <button
                     onClick={() => window.print()}
-                    className="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2"
+                    className="btn btn-outline-secondary w-50 d-flex align-items-center justify-content-center gap-2"
                   >
                     <Printer size={16} />
-                    <span>Print Sanction Order Document</span>
+                    <span>Print Document</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const token = localStorage.getItem('token');
+                      window.open(`http://localhost:5000/api/department/sanctions/${selectedSanction.sanctionNumber}/pdf?token=${token}`, '_blank');
+                    }}
+                    className="btn btn-primary w-50 d-flex align-items-center justify-content-center gap-2"
+                  >
+                    <Download size={16} />
+                    <span>Download PDF</span>
                   </button>
                 </div>
               </div>

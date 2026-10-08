@@ -18,6 +18,7 @@ import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 import AdminNotifications from './pages/admin/AdminNotifications';
 import AdminSLPMonitor from './pages/admin/AdminSLPMonitor';
 import AdminFeedback from './pages/admin/AdminFeedback';
+import AdminEmailLogs from './pages/admin/AdminEmailLogs';
 
 function App() {
   return (
@@ -124,6 +125,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
                 <AdminFeedback />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/email-logs"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
+                <AdminEmailLogs />
               </ProtectedRoute>
             }
           />

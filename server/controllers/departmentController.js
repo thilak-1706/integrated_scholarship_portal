@@ -9,6 +9,9 @@ const Notification = require('../models/Notification');
 const { recordAuditLog, createNotification } = require('../utils/auditHelper');
 const slpService = require('../services/slpService');
 const SLPTracking = require('../models/SLPTracking');
+const fs = require('fs');
+const { generateSanctionOrderPdf, getSanctionOrderPdfPath } = require('../services/pdfService');
+const { sendSanctionApprovedEmail } = require('../services/emailService');
 
 // Helper to get departmentId
 const getOfficerDepartmentId = (req) => {
@@ -667,11 +670,52 @@ const generateSanctionOrder = async (req, res) => {
       link: `/student/applications/${application._id}`
     });
 
+    // 5. Generate Official Sanction Order PDF
+    let pdfPath = null;
+    let pdfGenerated = false;
+    try {
+      pdfPath = await generateSanctionOrderPdf(sanction);
+      pdfGenerated = Boolean(pdfPath && fs.existsSync(pdfPath));
+      console.log(`[DepartmentController] Sanction Order PDF generated at: ${pdfPath}`);
+    } catch (pdfErr) {
+      console.error('[DepartmentController] Sanction Order PDF generation error:', pdfErr.message);
+    }
+
+    // 6 & 7. Send Automated Sanction Order Email with PDF Attachment to Student
+    let emailResult = null;
+    if (pdfGenerated && pdfPath) {
+      try {
+        emailResult = await sendSanctionApprovedEmail({
+          studentName: application.studentName,
+          studentEmail: application.studentEmail,
+          applicationNumber: application.applicationNumber,
+          scholarshipName: application.scholarshipName,
+          institutionName: application.institutionName,
+          sanctionNumber: sanction.sanctionNumber,
+          sanctionDate: sanction.approvalDate,
+          sanctionedAmount: sanction.approvedAmount,
+          sanctioningOfficer: sanction.officerName || req.user.name,
+          pdfPath,
+          trackingUrl: `${process.env.STUDENT_PORTAL_URL || 'http://localhost:3001'}/student/applications/${application.applicationNumber}`,
+          applicationId: application._id,
+          studentId: application.studentId,
+          sanctionId: sanction._id
+        });
+        console.log(`[DepartmentController] Sanction email dispatch result:`, emailResult?.success ? 'SUCCESS' : 'FAILED');
+      } catch (emailErr) {
+        // Safe handling: Email failure must NOT undo the successful sanction
+        console.error('[DepartmentController] Non-fatal error during email dispatch:', emailErr.message);
+      }
+    }
+
     return res.status(201).json({
       success: true,
       message: `Sanction Order ${sanction.sanctionNumber} generated successfully`,
       sanction,
-      payment
+      payment,
+      pdfGenerated,
+      emailSent: emailResult?.success || false,
+      emailStatus: emailResult?.emailLog?.status || (emailResult?.success ? 'SENT' : 'FAILED')
     });
   } catch (error) {
     console.error('Generate Sanction Error:', error);

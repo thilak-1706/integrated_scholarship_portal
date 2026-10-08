@@ -15,7 +15,8 @@ import {
   MessageSquare,
   X,
   Shield,
-  Zap
+  Zap,
+  Mail
 } from 'lucide-react';
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -44,6 +45,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       links: [
         { to: '/admin/reports', label: 'Analytics & Insights', icon: <BarChart3 size={18} /> },
         { to: '/admin/audit-logs', label: 'Security Audit Logs', icon: <History size={18} /> },
+        { to: '/admin/email-logs', label: 'Email Dispatches', icon: <Mail size={18} /> },
         { to: '/admin/notifications', label: 'System Dispatches', icon: <Bell size={18} /> },
         { to: '/admin/feedback', label: 'Feedback Desk', icon: <MessageSquare size={18} /> }
       ]
