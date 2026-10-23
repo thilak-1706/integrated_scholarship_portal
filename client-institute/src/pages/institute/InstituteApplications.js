@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PortalLayout from '../../components/layout/PortalLayout';
 import StatusBadge from '../../components/common/StatusBadge';
 import api from '../../services/api';
+import { getSocket } from '../../services/socket';
 import { FileText, Search, ShieldCheck, Eye, AlertTriangle } from 'lucide-react';
 
 const InstituteApplications = () => {
@@ -11,12 +12,8 @@ const InstituteApplications = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    fetchApplications();
-  }, [statusFilter]);
-
-  const fetchApplications = async () => {
-    setLoading(true);
+  const fetchApplications = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const params = {};
       if (statusFilter !== 'All') params.status = statusFilter;
@@ -29,9 +26,67 @@ const InstituteApplications = () => {
     } catch (err) {
       console.error('Failed to fetch institute applications:', err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  };
+  }, [statusFilter, search]);
+
+  useEffect(() => {
+    fetchApplications();
+  }, [fetchApplications]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleApplicationCreated = (newApp) => {
+      setApplications((prev) => {
+        const exists = prev.some(
+          (a) => a._id === newApp.applicationId || a.applicationNumber === newApp.applicationNumber
+        );
+        if (exists) return prev;
+        if (statusFilter !== 'All' && statusFilter !== 'SUBMITTED') return prev;
+        return [
+          {
+            _id: newApp.applicationId,
+            applicationNumber: newApp.applicationNumber,
+            studentName: newApp.studentName,
+            scholarshipName: newApp.scholarshipName,
+            academicDetails: newApp.academicDetails || {},
+            requestedAmount: newApp.requestedAmount,
+            status: newApp.status,
+            createdAt: newApp.createdAt || new Date()
+          },
+          ...prev
+        ];
+      });
+      fetchApplications(true);
+    };
+
+    const handleStatusUpdated = (updated) => {
+      setApplications((prev) =>
+        prev.map((app) =>
+          app._id === updated.applicationId || app.applicationNumber === updated.applicationNumber
+            ? { ...app, status: updated.status }
+            : app
+        )
+      );
+      fetchApplications(true);
+    };
+
+    const handleReconnect = () => {
+      fetchApplications(true);
+    };
+
+    socket.on('application_created', handleApplicationCreated);
+    socket.on('application_status_updated', handleStatusUpdated);
+    socket.on('connect', handleReconnect);
+
+    return () => {
+      socket.off('application_created', handleApplicationCreated);
+      socket.off('application_status_updated', handleStatusUpdated);
+      socket.off('connect', handleReconnect);
+    };
+  }, [fetchApplications, statusFilter]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();

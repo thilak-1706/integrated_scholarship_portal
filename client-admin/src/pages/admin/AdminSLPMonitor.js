@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PortalLayout from '../../components/layout/PortalLayout';
 import Timeline from '../../components/common/Timeline';
 import api from '../../services/api';
+import { getSocket } from '../../services/socket';
 import {
   Clock,
   AlertTriangle,
@@ -62,7 +63,7 @@ const AdminSLPMonitor = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const fetchOverview = async (isManual = false) => {
+  const fetchOverview = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true);
     try {
       const params = {};
@@ -82,16 +83,38 @@ const AdminSLPMonitor = () => {
       setLoading(false);
       if (isManual) setRefreshing(false);
     }
-  };
+  }, [selectedStatus, selectedStage, search]);
 
   useEffect(() => {
     fetchOverview();
-    // Auto-poll every 5 seconds to ensure backend state synchronization
-    const pollInterval = setInterval(() => {
+  }, [fetchOverview]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleUpdate = () => {
       fetchOverview();
-    }, 5000);
-    return () => clearInterval(pollInterval);
-  }, [selectedStatus, selectedStage, search]);
+    };
+
+    socket.on('slp_stage_started', handleUpdate);
+    socket.on('slp_stage_completed', handleUpdate);
+    socket.on('slp_sla_warning', handleUpdate);
+    socket.on('slp_sla_breached', handleUpdate);
+    socket.on('slp_escalated', handleUpdate);
+    socket.on('application_status_updated', handleUpdate);
+    socket.on('connect', handleUpdate);
+
+    return () => {
+      socket.off('slp_stage_started', handleUpdate);
+      socket.off('slp_stage_completed', handleUpdate);
+      socket.off('slp_sla_warning', handleUpdate);
+      socket.off('slp_sla_breached', handleUpdate);
+      socket.off('slp_escalated', handleUpdate);
+      socket.off('application_status_updated', handleUpdate);
+      socket.off('connect', handleUpdate);
+    };
+  }, [fetchOverview]);
 
   const handleInspect = async (app) => {
     setSelectedApp(app);

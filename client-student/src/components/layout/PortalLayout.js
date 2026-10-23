@@ -24,17 +24,18 @@ const PortalLayout = ({ children, pageTitle, breadcrumbs = [] }) => {
         <main className="p-3 p-lg-4 flex-grow-1">
           {/* Breadcrumb & Header */}
           {(pageTitle || breadcrumbs.length > 0) && (
-            <div className="mb-4">
+            <div className="mb-3.5">
               {breadcrumbs.length > 0 && (
                 <nav aria-label="breadcrumb">
-                  <ol className="breadcrumb mb-1.5" style={{ fontSize: '0.8rem' }}>
+                  <ol className="breadcrumb mb-1" style={{ fontSize: '0.82rem', '--bs-breadcrumb-divider': "'>'" }}>
                     {breadcrumbs.map((b, idx) => (
                       <li
                         key={idx}
-                        className={`breadcrumb-item ${idx === breadcrumbs.length - 1 ? 'active text-primary fw-semibold' : ''}`}
+                        className={`breadcrumb-item ${idx === breadcrumbs.length - 1 ? 'active fw-semibold' : ''}`}
+                        style={{ color: idx === breadcrumbs.length - 1 ? '#2563EB' : '#64748B' }}
                       >
-                        {b.link ? (
-                          <a href={b.link} className="text-decoration-none text-muted hover-text-primary">
+                        {b.link && idx !== breadcrumbs.length - 1 ? (
+                          <a href={b.link} className="text-decoration-none" style={{ color: '#64748B' }}>
                             {b.label}
                           </a>
                         ) : (
@@ -45,7 +46,14 @@ const PortalLayout = ({ children, pageTitle, breadcrumbs = [] }) => {
                   </ol>
                 </nav>
               )}
-              {pageTitle && <h3 className="fw-bold text-dark mb-0 tracking-tight fs-5 fs-sm-4 fs-md-3 text-break">{pageTitle}</h3>}
+              {pageTitle && (
+                <h3
+                  className="fw-bold mb-0 tracking-tight"
+                  style={{ color: '#0F172A', fontSize: '1.5rem', letterSpacing: '-0.02em' }}
+                >
+                  {pageTitle}
+                </h3>
+              )}
             </div>
           )}
 

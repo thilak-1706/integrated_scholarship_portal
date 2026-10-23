@@ -1,49 +1,76 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PortalLayout from '../../components/layout/PortalLayout';
 import StatsCard from '../../components/common/StatsCard';
 import StatusBadge from '../../components/common/StatusBadge';
+import InstituteBannerIllustration from '../../components/common/InstituteBannerIllustration';
 import api from '../../services/api';
-import { 
-  Clock, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Users, 
-  Building2,
+import { getSocket } from '../../services/socket';
+import {
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  Users,
   ShieldCheck
 } from 'lucide-react';
-import { 
-  PieChart, 
-  Pie, 
-  Cell, 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Legend 
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend
 } from 'recharts';
 
 const InstituteDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const res = await api.get('/institute/dashboard');
-        if (res.data.success) {
-          setData(res.data);
-        }
-      } catch (err) {
-        console.error('Failed to load institute dashboard:', err);
-      } finally {
-        setLoading(false);
+  const fetchDashboard = useCallback(async () => {
+    try {
+      const res = await api.get('/institute/dashboard');
+      if (res.data.success) {
+        setData(res.data);
       }
-    };
-    fetchDashboard();
+    } catch (err) {
+      console.error('Failed to load institute dashboard:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchDashboard();
+
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleApplicationCreated = () => {
+      fetchDashboard();
+    };
+
+    const handleStatusUpdated = () => {
+      fetchDashboard();
+    };
+
+    const handleReconnect = () => {
+      fetchDashboard();
+    };
+
+    socket.on('application_created', handleApplicationCreated);
+    socket.on('application_status_updated', handleStatusUpdated);
+    socket.on('connect', handleReconnect);
+
+    return () => {
+      socket.off('application_created', handleApplicationCreated);
+      socket.off('application_status_updated', handleStatusUpdated);
+      socket.off('connect', handleReconnect);
+    };
+  }, [fetchDashboard]);
 
   if (loading) {
     return (
@@ -69,21 +96,68 @@ const InstituteDashboard = () => {
       breadcrumbs={[{ label: 'Institute Portal', link: '/institute/dashboard' }, { label: 'Dashboard' }]}
     >
       {/* College Identity Banner */}
-      <div className="custom-card p-3 p-sm-4 mb-4 border-0 text-white" style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)' }}>
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-          <div>
-            <div className="d-flex align-items-center gap-2 mb-1">
-              <Building2 size={24} className="text-warning flex-shrink-0" />
-              <h4 className="fw-bold mb-0 text-white responsive-title text-break">{institution?.name || 'Assigned Institution'}</h4>
+      <div
+        className="p-3 p-md-4 mb-4 position-relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, #CFE8FE 0%, #BFE2FD 50%, #D4EAFC 100%)',
+          border: '1px solid #BFDBFE',
+          borderRadius: '20px',
+          boxShadow: '0 2px 12px rgba(191, 219, 254, 0.4)'
+        }}
+      >
+        <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 position-relative" style={{ zIndex: 2 }}>
+          {/* Left: Icon & Institution Metadata */}
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{
+                width: '52px',
+                height: '52px',
+                backgroundColor: '#FEF3C7',
+                border: '1.5px solid #FDE68A',
+                borderRadius: '14px',
+                boxShadow: '0 2px 6px rgba(245, 158, 11, 0.12)'
+              }}
+            >
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="2" width="16" height="20" rx="3" />
+                <path d="M9 22v-4h6v4" />
+                <path d="M8 6h.01" />
+                <path d="M16 6h.01" />
+                <path d="M8 10h.01" />
+                <path d="M16 10h.01" />
+                <path d="M8 14h.01" />
+                <path d="M16 14h.01" />
+              </svg>
             </div>
-            <span className="text-white-50 small text-break">
-              AISHE / College Code: {institution?.code || 'INST-101'} &bull; District: {institution?.district || 'Capital Region'} &bull; State: {institution?.state || 'Delhi'}
-            </span>
+            <div>
+              <h4 className="fw-bold mb-1 responsive-title text-break" style={{ color: '#0F172A', fontSize: '1.45rem', letterSpacing: '-0.01em' }}>
+                {institution?.name || 'Anna University Chennai'}
+              </h4>
+              <div className="small text-break fw-medium" style={{ color: '#475569', fontSize: '0.86rem' }}>
+                AISHE / College Code: {institution?.code || 'AUC-303'} &bull; District: {institution?.district || 'Chennai'} &bull; State: {institution?.state || 'Tamil Nadu'}
+              </div>
+            </div>
           </div>
-          <div>
-            <span className="badge bg-warning text-dark px-3 py-2 fw-bold text-wrap text-start">
+
+          {/* Right: Desk Pill & Neoclassical Building Illustration */}
+          <div className="d-flex align-items-center gap-3 align-self-start align-self-lg-center mt-2 mt-lg-0">
+            <span
+              className="badge rounded-pill fw-bold text-nowrap d-inline-flex align-items-center"
+              style={{
+                backgroundColor: '#F59E0B',
+                color: '#0F172A',
+                fontSize: '0.84rem',
+                padding: '10px 22px',
+                boxShadow: '0 2px 8px rgba(245, 158, 11, 0.25)',
+                letterSpacing: '0.01em'
+              }}
+            >
               Institutional Verification Desk
             </span>
+            <div className="d-none d-sm-block">
+              <InstituteBannerIllustration />
+            </div>
           </div>
         </div>
       </div>

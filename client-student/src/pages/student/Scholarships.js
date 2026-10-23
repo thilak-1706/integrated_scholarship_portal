@@ -20,6 +20,7 @@ const Scholarships = () => {
 
   useEffect(() => {
     fetchScholarships();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providerType, educationLevel, category]);
 
   const fetchScholarships = async () => {

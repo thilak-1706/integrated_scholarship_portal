@@ -7,6 +7,7 @@ const Sanction = require('../models/Sanction');
 const Payment = require('../models/Payment');
 const Notification = require('../models/Notification');
 const { recordAuditLog, createNotification } = require('../utils/auditHelper');
+const { emitApplicationStatusUpdated, emitSanctionGenerated, emitPaymentStatusUpdated } = require('../utils/socketManager');
 const slpService = require('../services/slpService');
 const SLPTracking = require('../models/SLPTracking');
 const fs = require('fs');
@@ -517,6 +518,15 @@ const verifyDepartmentApplication = async (req, res) => {
       }, action);
     }
 
+    // Emit real-time Socket.IO event to Student, Department, Institute, Admin
+    emitApplicationStatusUpdated(application, {
+      previousStatus,
+      action,
+      remarks,
+      officerName: req.user.name,
+      officerRole: 'DEPARTMENT_OFFICER'
+    });
+
     // Fetch fully populated application for frontend state sync
     const populatedApplication = await Application.findById(application._id)
       .populate('scholarshipId')
@@ -708,6 +718,16 @@ const generateSanctionOrder = async (req, res) => {
       }
     }
 
+    // Emit real-time Socket.IO events for Sanction Order Generation & Status Update
+    emitSanctionGenerated(sanction, application);
+    emitApplicationStatusUpdated(application, {
+      previousStatus,
+      action: 'GENERATE_SANCTION',
+      remarks: `Official Sanction Order generated: ${sanction.sanctionNumber}`,
+      officerName: req.user.name,
+      officerRole: 'DEPARTMENT_OFFICER'
+    });
+
     return res.status(201).json({
       success: true,
       message: `Sanction Order ${sanction.sanctionNumber} generated successfully`,
@@ -841,6 +861,18 @@ const simulateDisbursement = async (req, res) => {
         });
       }
 
+      // Emit real-time Socket.IO events for Payment Processing
+      emitPaymentStatusUpdated(payment, application);
+      if (application) {
+        emitApplicationStatusUpdated(application, {
+          previousStatus,
+          action: 'PROCESS_PAYMENT',
+          remarks: `Payment reference ${payment.paymentReference} sent to Banking Gateway for processing.`,
+          officerName: req.user.name,
+          officerRole: 'DEPARTMENT_OFFICER'
+        });
+      }
+
       return res.status(200).json({
         success: true,
         message: 'Payment moved to PROCESSING stage',
@@ -915,6 +947,18 @@ const simulateDisbursement = async (req, res) => {
           type: 'success',
           applicationNumber: application.applicationNumber,
           link: `/student/payments`
+        });
+      }
+
+      // Emit real-time Socket.IO events for Disbursement Completion
+      emitPaymentStatusUpdated(payment, application);
+      if (application) {
+        emitApplicationStatusUpdated(application, {
+          previousStatus,
+          action: 'DISBURSE',
+          remarks: `Disbursement completed via Direct Benefit Transfer (DBT). UTR: ${randomUtr}`,
+          officerName: req.user.name,
+          officerRole: 'DEPARTMENT_OFFICER'
         });
       }
 

@@ -3,23 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import Swal from 'sweetalert2';
-import { 
-  Bell, 
-  LogOut, 
-  User as UserIcon, 
-  Menu, 
-  ExternalLink,
-  ChevronDown,
-  ShieldCheck,
-  Clock,
-  CheckCheck
-} from 'lucide-react';
 
 const Navbar = ({ onToggleSidebar }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(44);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -28,7 +17,7 @@ const Navbar = ({ onToggleSidebar }) => {
   const userRef = useRef(null);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    const timer = setInterval(() => setCurrentTime(new Date()), 30000);
     return () => clearInterval(timer);
   }, []);
 
@@ -52,7 +41,9 @@ const Navbar = ({ onToggleSidebar }) => {
       const res = await api.get('/student/notifications');
       if (res.data.success) {
         setNotifications(res.data.notifications || []);
-        setUnreadCount(res.data.unreadCount || 0);
+        if (typeof res.data.unreadCount === 'number') {
+          setUnreadCount(res.data.unreadCount);
+        }
       }
     } catch (err) {
       // Silently ignore in poll
@@ -63,6 +54,7 @@ const Navbar = ({ onToggleSidebar }) => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 12000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleMarkAllRead = async () => {
@@ -82,8 +74,8 @@ const Navbar = ({ onToggleSidebar }) => {
       text: 'Are you sure you want to end your student session?',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#64748b',
+      confirmButtonColor: '#2563EB',
+      cancelButtonColor: '#64748B',
       confirmButtonText: 'Yes, Sign Out'
     }).then((result) => {
       if (result.isConfirmed) {
@@ -93,67 +85,155 @@ const Navbar = ({ onToggleSidebar }) => {
     });
   };
 
+  // Format date and time matching reference: e.g. "Wed, 21 Oct • 01:50 pm"
+  const formattedDate = currentTime.toLocaleDateString('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short'
+  });
+  const formattedTime = currentTime.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  }).toLowerCase();
+
   return (
-    <header className="portal-navbar px-3 px-lg-4 d-flex align-items-center justify-content-between">
-      {/* Left side: Hamburger and Portal Identification */}
+    <header
+      className="portal-navbar px-3 px-lg-4 d-flex align-items-center justify-content-between"
+      style={{
+        height: '72px',
+        backgroundColor: '#FFFFFF',
+        borderBottom: '1px solid #E2E8F0',
+        position: 'sticky',
+        top: 0,
+        zIndex: 1030
+      }}
+    >
+      {/* Left side: Hamburger, Logo Icon & Portal Identification */}
       <div className="d-flex align-items-center gap-3">
         <button
-          className="btn btn-light d-lg-none p-2 border rounded-3 d-flex align-items-center justify-content-center text-dark"
+          className="btn p-0 d-flex align-items-center justify-content-center"
           onClick={onToggleSidebar}
           aria-label="Toggle Navigation Drawer"
-          style={{ width: '38px', height: '38px' }}
+          style={{
+            width: '40px',
+            height: '40px',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
+          }}
         >
-          <Menu size={20} />
+          <i className="bi bi-list" style={{ fontSize: '1.35rem', color: '#1E293B' }}></i>
         </button>
 
-        <div className="d-flex align-items-center gap-2">
-          <div className="d-flex align-items-center gap-2">
-            <div className="p-1.5 rounded-3 bg-dark text-warning d-flex align-items-center justify-content-center">
-              <ShieldCheck size={18} />
+        <div className="d-flex align-items-center" style={{ gap: '12px' }}>
+          {/* Graduation Cap Mortarboard Icon with Tassel matching screenshot */}
+          <div
+            className="d-flex align-items-center justify-content-center flex-shrink-0"
+            style={{ width: '30px', height: '30px', marginRight: '12px' }}
+          >
+            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Skullcap bottom */}
+              <path d="M9 17.5C9 21.5 13.5 24 16 24C18.5 24 23 21.5 23 17.5V14.5L16 18L9 14.5V17.5Z" fill="#1E293B" />
+              {/* Diamond mortarboard top */}
+              <polygon points="16,5 29,12 16,19 3,12" fill="#1E293B" />
+              <polygon points="16,6.2 27.2,12 16,17.8 4.8,12" fill="#2B394E" />
+              {/* Center button */}
+              <ellipse cx="16" cy="12" rx="1.6" ry="1.2" fill="#F59E0B" />
+              {/* Golden Tassel */}
+              <path d="M16 12C20 12 24.5 13.5 25 16C25.3 17.5 25 19.5 25 21.5" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" />
+              <polygon points="23.5,21 26.5,21 26,24.5 24,24.5" fill="#F59E0B" />
+            </svg>
+          </div>
+
+          <div>
+            <div className="d-flex align-items-center gap-2">
+              <span
+                className="fw-bold"
+                style={{
+                  fontSize: '0.96rem',
+                  letterSpacing: '-0.01em',
+                  color: '#0F172A',
+                  lineHeight: '1.2'
+                }}
+              >
+                <span className="d-none d-sm-inline">National Scholarship Portal</span>
+                <span className="d-sm-none">NSP 2.0</span>
+              </span>
+              <span
+                className="badge rounded-pill fw-semibold"
+                style={{
+                  backgroundColor: '#2563EB',
+                  color: '#FFFFFF',
+                  fontSize: '0.68rem',
+                  padding: '2.5px 9px',
+                  borderRadius: '20px'
+                }}
+              >
+                Student
+              </span>
             </div>
-            <div>
-              <div className="d-flex align-items-center gap-1.5">
-                <span className="fw-bold text-dark" style={{ fontSize: '0.9rem', letterSpacing: '-0.01em' }}>
-                  <span className="d-none d-sm-inline">National Scholarship Portal</span>
-                  <span className="d-sm-none">NSP 2.0</span>
-                </span>
-                <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 fw-semibold px-2 py-0.5 rounded" style={{ fontSize: '0.65rem' }}>
-                  Student
-                </span>
-              </div>
-              <div className="text-muted d-none d-md-block" style={{ fontSize: '0.72rem' }}>
-                Scholarship Application, Document Verification & DBT Tracking
-              </div>
+            <div
+              className="d-none d-md-block"
+              style={{ fontSize: '0.72rem', color: '#64748B', lineHeight: '1.2', marginTop: '2px' }}
+            >
+              Scholarship Application, Document Verification & DBT Tracking
             </div>
           </div>
         </div>
       </div>
 
       {/* Right side: Time Pill, Notifications, User Menu */}
-      <div className="d-flex align-items-center gap-2.5">
+      <div className="d-flex align-items-center gap-3">
         {/* System Time Pill */}
-        <div className="d-none d-xl-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill bg-light border text-muted small">
-          <Clock size={13} className="text-secondary" />
-          <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>
-            {currentTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })} &bull; {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        <div
+          className="d-none d-xl-flex align-items-center gap-2 px-3 py-1.5 rounded-pill border"
+          style={{
+            backgroundColor: '#F0F6FF',
+            borderColor: '#E2E8F0',
+            fontSize: '0.78rem',
+            color: '#334155',
+            fontWeight: 600
+          }}
+        >
+          <i className="bi bi-calendar-event text-primary" style={{ fontSize: '0.9rem' }}></i>
+          <span>
+            {formattedDate} &bull; {formattedTime}
           </span>
         </div>
 
-        {/* Notifications Dropdown */}
+        {/* Notifications Dropdown Button */}
         <div className="position-relative" ref={notifRef}>
           <button
-            className={`btn btn-light border position-relative p-0 rounded-circle d-flex align-items-center justify-content-center transition-all ${
-              showNotifDropdown ? 'bg-primary text-white border-primary shadow-sm' : 'text-secondary hover-bg'
+            className={`btn p-0 rounded-circle d-flex align-items-center justify-content-center transition-all ${
+              showNotifDropdown ? 'border-primary' : ''
             }`}
-            style={{ width: '40px', height: '40px' }}
+            style={{
+              width: '40px',
+              height: '40px',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              color: '#475569'
+            }}
             onClick={() => setShowNotifDropdown(!showNotifDropdown)}
             aria-label="Notifications"
           >
-            <Bell size={18} className={showNotifDropdown ? 'text-white' : 'text-secondary'} />
+            <i className="bi bi-bell" style={{ fontSize: '1.15rem' }}></i>
             {unreadCount > 0 && (
               <span
-                className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white"
-                style={{ fontSize: '0.65rem', minWidth: '18px', height: '18px', padding: '2px 4px' }}
+                className="position-absolute top-0 start-100 translate-middle badge rounded-pill"
+                style={{
+                  fontSize: '0.65rem',
+                  minWidth: '18px',
+                  height: '18px',
+                  padding: '2px 5px',
+                  backgroundColor: '#EF4444',
+                  color: '#FFFFFF',
+                  border: '2px solid #FFFFFF',
+                  fontWeight: 700
+                }}
               >
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
@@ -162,14 +242,31 @@ const Navbar = ({ onToggleSidebar }) => {
 
           {showNotifDropdown && (
             <div
-              className="position-absolute end-0 mt-2 dropdown-menu-glass shadow-lg p-0"
-              style={{ width: '340px', maxWidth: 'calc(100vw - 24px)', zIndex: 1060 }}
+              className="position-absolute end-0 mt-2 bg-white shadow-lg border rounded-3 p-0"
+              style={{
+                width: '340px',
+                maxWidth: 'calc(100vw - 24px)',
+                zIndex: 1060,
+                borderColor: '#E2E8F0',
+                borderRadius: '14px',
+                overflow: 'hidden'
+              }}
             >
-              <div className="p-3 border-bottom d-flex justify-content-between align-items-center bg-light bg-opacity-50">
+              <div
+                className="p-3 border-bottom d-flex justify-content-between align-items-center"
+                style={{ backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }}
+              >
                 <div className="d-flex align-items-center gap-2">
                   <span className="fw-bold small text-dark">Notifications</span>
                   {unreadCount > 0 && (
-                    <span className="badge rounded-pill bg-primary" style={{ fontSize: '0.68rem' }}>
+                    <span
+                      className="badge rounded-pill"
+                      style={{
+                        backgroundColor: '#2563EB',
+                        color: '#FFFFFF',
+                        fontSize: '0.68rem'
+                      }}
+                    >
                       {unreadCount} New
                     </span>
                   )}
@@ -180,15 +277,15 @@ const Navbar = ({ onToggleSidebar }) => {
                     className="btn btn-link p-0 text-decoration-none small text-primary d-flex align-items-center gap-1"
                     style={{ fontSize: '0.75rem' }}
                   >
-                    <CheckCheck size={14} /> Mark all read
+                    <i className="bi bi-check2-all"></i> Mark all read
                   </button>
                 )}
               </div>
 
-              <div style={{ maxHeight: '300px', overflowY: 'auto' }} className="custom-dark-scrollbar">
+              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                 {notifications.length === 0 ? (
                   <div className="p-4 text-center text-muted small">
-                    <Bell size={24} className="opacity-25 mb-2 d-block mx-auto" />
+                    <i className="bi bi-bell opacity-25 mb-2 d-block mx-auto" style={{ fontSize: '1.5rem' }}></i>
                     No notifications right now
                   </div>
                 ) : (
@@ -196,7 +293,7 @@ const Navbar = ({ onToggleSidebar }) => {
                     <div
                       key={n._id}
                       className={`p-3 border-bottom notification-item ${!n.read ? 'unread' : ''}`}
-                      style={{ fontSize: '0.8rem' }}
+                      style={{ fontSize: '0.8rem', borderColor: '#F1F5F9' }}
                     >
                       <div className="d-flex align-items-center justify-content-between mb-1">
                         <span className="fw-bold text-dark text-truncate" style={{ maxWidth: '200px' }}>
@@ -214,63 +311,94 @@ const Navbar = ({ onToggleSidebar }) => {
                 )}
               </div>
 
-              <div className="p-2.5 text-center border-top bg-light bg-opacity-50">
+              <div
+                className="p-2.5 text-center border-top"
+                style={{ backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }}
+              >
                 <Link
                   to="/student/notifications"
                   className="small text-primary text-decoration-none fw-semibold d-inline-flex align-items-center gap-1"
                   onClick={() => setShowNotifDropdown(false)}
                 >
                   <span>View All Notifications</span>
-                  <ExternalLink size={12} />
+                  <i className="bi bi-arrow-right" style={{ fontSize: '0.8rem' }}></i>
                 </Link>
               </div>
             </div>
           )}
         </div>
 
-        {/* User Profile Menu */}
+        {/* User Profile Menu Pill */}
         <div className="position-relative" ref={userRef}>
           <button
             onClick={() => setShowUserDropdown(!showUserDropdown)}
-            className="btn btn-light border rounded-pill p-1 ps-1.5 pe-3 d-flex align-items-center gap-2 hover-bg shadow-sm"
-            style={{ height: '42px' }}
+            className="btn d-flex align-items-center transition-all"
+            style={{
+              height: '42px',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E2E8F0',
+              borderRadius: '28px',
+              padding: '4px 14px 4px 5px'
+            }}
           >
             <div
-              className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
+              className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold me-2"
               style={{
-                width: '32px',
-                height: '32px',
-                fontSize: '0.88rem',
-                background: 'linear-gradient(135deg, #2563eb, #1d4ed8)'
+                width: '34px',
+                height: '34px',
+                fontSize: '0.95rem',
+                backgroundColor: '#2563EB',
+                flexShrink: 0
               }}
             >
-              {user?.name?.charAt(0)?.toUpperCase() || 'S'}
+              {user?.name?.charAt(0)?.toUpperCase() || 'T'}
             </div>
-            <div className="d-none d-md-block text-start" style={{ lineHeight: '1.2' }}>
-              <div className="fw-bold text-dark text-truncate" style={{ fontSize: '0.82rem', maxWidth: '140px' }}>
-                {user?.name || 'Student'}
+            <div className="d-none d-md-block text-start me-1" style={{ lineHeight: '1.2' }}>
+              <div
+                className="fw-bold text-truncate"
+                style={{ fontSize: '0.84rem', maxWidth: '140px', color: '#0F172A' }}
+              >
+                {user?.name || 'THILAK G'}
               </div>
-              <div className="text-muted text-truncate" style={{ fontSize: '0.68rem' }}>
+              <div className="text-truncate" style={{ fontSize: '0.68rem', color: '#64748B', fontWeight: 500 }}>
                 Applicant
               </div>
             </div>
-            <ChevronDown size={14} className="text-muted d-none d-sm-block ms-1" />
+            <i className="bi bi-chevron-down text-secondary ms-1.5" style={{ fontSize: '0.72rem' }}></i>
           </button>
 
           {showUserDropdown && (
             <div
-              className="position-absolute end-0 mt-2 dropdown-menu-glass shadow-lg p-0"
-              style={{ width: '260px', zIndex: 1060 }}
+              className="position-absolute end-0 mt-2 bg-white shadow-lg border rounded-3 p-0"
+              style={{
+                width: '260px',
+                zIndex: 1060,
+                borderColor: '#E2E8F0',
+                borderRadius: '14px',
+                overflow: 'hidden'
+              }}
             >
               {/* User Details Header */}
-              <div className="p-3 border-bottom bg-light bg-opacity-70">
-                <div className="fw-bold text-dark text-truncate">{user?.name}</div>
+              <div
+                className="p-3 border-bottom"
+                style={{ backgroundColor: '#F8FAFC', borderColor: '#E2E8F0' }}
+              >
+                <div className="fw-bold text-dark text-truncate">{user?.name || 'THILAK G'}</div>
                 <div className="text-muted text-truncate small mb-2" style={{ fontSize: '0.75rem' }}>
-                  {user?.email}
+                  {user?.email || 'thilakgopal1706@gmail.com'}
                 </div>
                 <div>
-                  <span className="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2.5 py-1">
-                    Student Beneficiary
+                  <span
+                    className="badge rounded-pill fw-semibold"
+                    style={{
+                      backgroundColor: '#EFF6FF',
+                      color: '#2563EB',
+                      border: '1px solid #BFDBFE',
+                      padding: '4px 8px',
+                      fontSize: '0.7rem'
+                    }}
+                  >
+                    Applicant
                   </span>
                 </div>
               </div>
@@ -279,28 +407,28 @@ const Navbar = ({ onToggleSidebar }) => {
               <div className="p-1.5">
                 <Link
                   to="/student/profile"
-                  className="dropdown-item py-2 px-3 rounded-3 d-flex align-items-center gap-2 text-dark small fw-semibold"
+                  className="dropdown-item py-2 px-3 rounded-2 d-flex align-items-center gap-2 text-dark small fw-semibold"
                   onClick={() => setShowUserDropdown(false)}
                 >
-                  <UserIcon size={16} className="text-primary" />
+                  <i className="bi bi-person text-primary" style={{ fontSize: '1rem' }}></i>
                   <span>My Profile</span>
                 </Link>
                 <Link
                   to="/student/notifications"
-                  className="dropdown-item py-2 px-3 rounded-3 d-flex align-items-center gap-2 text-dark small fw-semibold"
+                  className="dropdown-item py-2 px-3 rounded-2 d-flex align-items-center gap-2 text-dark small fw-semibold"
                   onClick={() => setShowUserDropdown(false)}
                 >
-                  <Bell size={16} className="text-warning" />
+                  <i className="bi bi-bell text-warning" style={{ fontSize: '1rem' }}></i>
                   <span>Notification Center</span>
                 </Link>
               </div>
 
-              <div className="border-top p-1.5">
+              <div className="border-top p-1.5" style={{ borderColor: '#E2E8F0' }}>
                 <button
                   onClick={handleLogout}
-                  className="dropdown-item py-2 px-3 rounded-3 d-flex align-items-center gap-2 text-danger small fw-semibold hover-bg"
+                  className="dropdown-item py-2 px-3 rounded-2 d-flex align-items-center gap-2 text-danger small fw-semibold"
                 >
-                  <LogOut size={16} />
+                  <i className="bi bi-box-arrow-right" style={{ fontSize: '1rem' }}></i>
                   <span>Sign Out</span>
                 </button>
               </div>

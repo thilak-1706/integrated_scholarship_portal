@@ -6,11 +6,8 @@ import {
   Send,
   Clock,
   CheckCircle2,
-  AlertCircle,
   FileText,
-  CornerDownRight,
-  RefreshCw,
-  Info
+  RefreshCw
 } from 'lucide-react';
 
 const StudentFeedback = () => {

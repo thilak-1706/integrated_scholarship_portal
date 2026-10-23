@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import PortalLayout from '../../components/layout/PortalLayout';
 import Timeline from '../../components/common/Timeline';
 import StatusBadge from '../../components/common/StatusBadge';
 import api from '../../services/api';
+import { getSocket } from '../../services/socket';
 import {
   Award,
   AlertTriangle,
@@ -29,14 +30,8 @@ const ApplicationTracking = () => {
   const [resubmitSuccess, setResubmitSuccess] = useState('');
   const [resubmitError, setResubmitError] = useState('');
 
-  useEffect(() => {
-    fetchApplicationDetails();
-    if (location.search.includes('action=fix')) {
-      setShowCorrectionModal(true);
-    }
-  }, [id, location]);
-
-  const fetchApplicationDetails = async () => {
+  const fetchApplicationDetails = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const res = await api.get(`/student/applications/${id}`);
       if (res.data.success) {
@@ -47,9 +42,52 @@ const ApplicationTracking = () => {
     } catch (err) {
       console.error('Failed to load application details:', err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchApplicationDetails();
+    if (location.search.includes('action=fix')) {
+      setShowCorrectionModal(true);
+    }
+  }, [id, location, fetchApplicationDetails]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    if (application?.applicationNumber) {
+      socket.emit('subscribe_application', application.applicationNumber);
+    }
+
+    const handleUpdate = (payload) => {
+      if (
+        !payload ||
+        payload.applicationId === id ||
+        payload.applicationNumber === application?.applicationNumber ||
+        !payload.applicationNumber
+      ) {
+        fetchApplicationDetails(true);
+      }
+    };
+
+    socket.on('application_status_updated', handleUpdate);
+    socket.on('sanction_generated', handleUpdate);
+    socket.on('payment_status_updated', handleUpdate);
+    socket.on('slp_stage_started', handleUpdate);
+    socket.on('slp_stage_completed', handleUpdate);
+    socket.on('connect', handleUpdate);
+
+    return () => {
+      socket.off('application_status_updated', handleUpdate);
+      socket.off('sanction_generated', handleUpdate);
+      socket.off('payment_status_updated', handleUpdate);
+      socket.off('slp_stage_started', handleUpdate);
+      socket.off('slp_stage_completed', handleUpdate);
+      socket.off('connect', handleUpdate);
+    };
+  }, [id, application?.applicationNumber, fetchApplicationDetails]);
 
   const handleResubmitCorrection = async (e) => {
     e.preventDefault();
@@ -344,6 +382,11 @@ const ApplicationTracking = () => {
               </div>
               <form onSubmit={handleResubmitCorrection}>
                 <div className="modal-body py-3">
+                  {resubmitError && (
+                    <div className="alert alert-danger py-2 small mb-3">
+                      {resubmitError}
+                    </div>
+                  )}
                   <div className="alert alert-warning py-2 small mb-3">
                     <strong>Officer Remarks:</strong> {application.correctionRemarks || 'Please update the requested documents.'}
                   </div>

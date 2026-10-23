@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PortalLayout from '../../components/layout/PortalLayout';
 import StatsCard from '../../components/common/StatsCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import api from '../../services/api';
+import { getSocket } from '../../services/socket';
 import {
-  FileText,
   Clock,
   CheckCircle2,
   Award,
-  DollarSign,
-  Building,
-  ArrowRight,
-  TrendingUp,
-  Banknote
+  Building2,
+  Banknote,
+  Settings,
+  FileText
 } from 'lucide-react';
+import DeptBannerIllustration from '../../components/common/DeptBannerIllustration';
 import {
   PieChart,
   Pie,
@@ -32,21 +32,41 @@ const DepartmentDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const res = await api.get('/department/dashboard');
-        if (res.data.success) {
-          setData(res.data);
-        }
-      } catch (err) {
-        console.error('Failed to load department dashboard:', err);
-      } finally {
-        setLoading(false);
+  const fetchDashboard = useCallback(async () => {
+    try {
+      const res = await api.get('/department/dashboard');
+      if (res.data.success) {
+        setData(res.data);
       }
-    };
-    fetchDashboard();
+    } catch (err) {
+      console.error('Failed to load department dashboard:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchDashboard();
+
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleUpdate = () => {
+      fetchDashboard();
+    };
+
+    socket.on('application_status_updated', handleUpdate);
+    socket.on('sanction_generated', handleUpdate);
+    socket.on('payment_status_updated', handleUpdate);
+    socket.on('connect', handleUpdate);
+
+    return () => {
+      socket.off('application_status_updated', handleUpdate);
+      socket.off('sanction_generated', handleUpdate);
+      socket.off('payment_status_updated', handleUpdate);
+      socket.off('connect', handleUpdate);
+    };
+  }, [fetchDashboard]);
 
   if (loading) {
     return (
@@ -72,23 +92,77 @@ const DepartmentDashboard = () => {
       breadcrumbs={[{ label: 'Department Portal', link: '/department/dashboard' }, { label: 'Dashboard' }]}
     >
       {/* Department Banner */}
-      <div className="custom-card p-3 p-sm-4 mb-4 border-0 text-white" style={{ background: 'linear-gradient(135deg, #1e1b4b, #312e81)' }}>
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-          <div>
-            <div className="d-flex align-items-center gap-2 mb-1">
-              <Building size={24} className="text-info flex-shrink-0" />
-              <h4 className="fw-bold mb-0 text-white responsive-title text-break">{department?.name || 'Assigned Welfare Department'}</h4>
+      <div
+        className="p-3 p-md-4 mb-4 text-white position-relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(90deg, #5A0808 0%, #750A0A 25%, #991B1B 60%, #DC2626 100%)',
+          borderRadius: '18px',
+          boxShadow: '0 4px 20px rgba(127, 29, 29, 0.25)'
+        }}
+      >
+        <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 position-relative" style={{ zIndex: 2 }}>
+          {/* Left: Department Icon & Titles */}
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{
+                width: '48px',
+                height: '48px',
+                backgroundColor: '#DC2626',
+                border: '1.5px solid rgba(254, 202, 202, 0.4)',
+                borderRadius: '13px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+              }}
+            >
+              <Building2 size={24} className="text-white" />
             </div>
-            <span className="text-white-50 small text-break">
-              Provider: {department?.provider || 'Government of India'} &bull; Type: {department?.type || 'GOVERNMENT'} &bull; Department Code: {department?.code || 'DEP-BCW'}
-            </span>
+            <div>
+              <h4 className="fw-bold mb-1 text-white responsive-title text-break" style={{ letterSpacing: '-0.01em' }}>
+                {department?.name || 'Ministry of Higher Education & Welfare'}
+              </h4>
+              <span className="small text-break" style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.85rem' }}>
+                Provider: {department?.provider || 'Department of Higher Education, Govt of India'} &bull; Type: {department?.type || 'GOVERNMENT'} &bull; Department Code: {department?.code || 'MOHE-GOV'}
+              </span>
+            </div>
           </div>
-          <div className="d-flex flex-wrap gap-2">
-            <Link to="/department/sanctions" className="btn btn-warning btn-sm fw-bold">
-              Generate Sanctions
+
+          {/* Center Background: Ministry Rotunda / Dome Graphic */}
+          <div className="d-none d-xl-block position-absolute" style={{ left: '60%', transform: 'translateX(-50%)', bottom: '-8px', zIndex: 1 }}>
+            <DeptBannerIllustration />
+          </div>
+
+          {/* Right Action Buttons */}
+          <div className="d-flex align-items-center gap-2.5 flex-wrap flex-shrink-0 position-relative" style={{ zIndex: 3 }}>
+            <Link
+              to="/department/sanctions"
+              className="btn fw-bold d-inline-flex align-items-center gap-2"
+              style={{
+                backgroundColor: '#DC2626',
+                border: '1px solid #EF4444',
+                color: '#FFFFFF',
+                borderRadius: '10px',
+                padding: '9px 20px',
+                fontSize: '0.86rem',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+              }}
+            >
+              <Settings size={16} />
+              <span>Generate Sanctions</span>
             </Link>
-            <Link to="/department/disbursement" className="btn btn-light btn-sm fw-bold">
-              Disbursement Gateway
+            <Link
+              to="/department/disbursement"
+              className="btn fw-bold d-inline-flex align-items-center gap-2 bg-white"
+              style={{
+                color: '#0F172A',
+                border: '1px solid #FFFFFF',
+                borderRadius: '10px',
+                padding: '9px 20px',
+                fontSize: '0.86rem',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+              }}
+            >
+              <FileText size={16} style={{ color: '#DC2626' }} />
+              <span>Disbursement Gateway</span>
             </Link>
           </div>
         </div>

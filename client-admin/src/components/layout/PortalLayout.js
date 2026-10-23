@@ -31,7 +31,8 @@ const PortalLayout = ({ children, pageTitle, breadcrumbs = [] }) => {
                     {breadcrumbs.map((b, idx) => (
                       <li
                         key={idx}
-                        className={`breadcrumb-item ${idx === breadcrumbs.length - 1 ? 'active text-primary fw-semibold' : ''}`}
+                        className={`breadcrumb-item ${idx === breadcrumbs.length - 1 ? 'active fw-semibold' : ''}`}
+                        style={idx === breadcrumbs.length - 1 ? { color: '#E11D48' } : {}}
                       >
                         {b.link ? (
                           <a href={b.link} className="text-decoration-none text-muted hover-text-primary">

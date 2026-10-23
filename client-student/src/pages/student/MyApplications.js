@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PortalLayout from '../../components/layout/PortalLayout';
 import StatusBadge from '../../components/common/StatusBadge';
 import api from '../../services/api';
+import { getSocket } from '../../services/socket';
 import { FileText, Eye, AlertTriangle, Search } from 'lucide-react';
 
 const MyApplications = () => {
@@ -11,11 +12,8 @@ const MyApplications = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    fetchApplications();
-  }, []);
-
-  const fetchApplications = async () => {
+  const fetchApplications = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const res = await api.get('/student/applications');
       if (res.data.success) {
@@ -24,9 +22,67 @@ const MyApplications = () => {
     } catch (err) {
       console.error('Failed to fetch applications:', err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchApplications();
+
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleCreated = (newApp) => {
+      setApplications((prev) => {
+        const exists = prev.some(
+          (a) => a._id === newApp.applicationId || a.applicationNumber === newApp.applicationNumber
+        );
+        if (exists) return prev;
+        return [
+          {
+            _id: newApp.applicationId,
+            applicationNumber: newApp.applicationNumber,
+            scholarshipName: newApp.scholarshipName,
+            requestedAmount: newApp.requestedAmount,
+            status: newApp.status,
+            submissionType: newApp.submissionType,
+            createdAt: newApp.createdAt || new Date()
+          },
+          ...prev
+        ];
+      });
+      fetchApplications(true);
+    };
+
+    const handleStatusUpdated = (updated) => {
+      setApplications((prev) =>
+        prev.map((app) =>
+          app._id === updated.applicationId || app.applicationNumber === updated.applicationNumber
+            ? { ...app, status: updated.status }
+            : app
+        )
+      );
+      fetchApplications(true);
+    };
+
+    const handleReconnect = () => {
+      fetchApplications(true);
+    };
+
+    socket.on('application_created', handleCreated);
+    socket.on('application_status_updated', handleStatusUpdated);
+    socket.on('sanction_generated', handleStatusUpdated);
+    socket.on('payment_status_updated', handleStatusUpdated);
+    socket.on('connect', handleReconnect);
+
+    return () => {
+      socket.off('application_created', handleCreated);
+      socket.off('application_status_updated', handleStatusUpdated);
+      socket.off('sanction_generated', handleStatusUpdated);
+      socket.off('payment_status_updated', handleStatusUpdated);
+      socket.off('connect', handleReconnect);
+    };
+  }, [fetchApplications]);
 
   const filtered = applications.filter((app) => {
     const matchStatus = filterStatus === 'All' || app.status === filterStatus;

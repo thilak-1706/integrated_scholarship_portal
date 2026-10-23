@@ -7,6 +7,7 @@ const Notification = require('../models/Notification');
 const Institution = require('../models/Institution');
 const Department = require('../models/Department');
 const { recordAuditLog, createNotification } = require('../utils/auditHelper');
+const { emitApplicationCreated, emitApplicationStatusUpdated } = require('../utils/socketManager');
 const slpService = require('../services/slpService');
 const SLPTracking = require('../models/SLPTracking');
 
@@ -383,6 +384,16 @@ const applyScholarship = async (req, res) => {
       id: student._id,
       name: student.name,
       role: 'STUDENT'
+    });
+
+    // Emit real-time Socket.IO event to Institute Officer, Admin, and Student
+    emitApplicationCreated(application);
+    emitApplicationStatusUpdated(application, {
+      previousStatus: 'NEW',
+      action: 'SUBMIT',
+      remarks: 'Application submitted through 7-step wizard.',
+      officerName: student.name,
+      officerRole: 'STUDENT'
     });
 
     return res.status(201).json({

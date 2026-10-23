@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PortalLayout from '../../components/layout/PortalLayout';
 import StatusBadge from '../../components/common/StatusBadge';
 import api from '../../services/api';
+import { getSocket } from '../../services/socket';
 import { FileText, Search, ShieldCheck, Eye, Award, AlertTriangle } from 'lucide-react';
 
 const DepartmentApplications = () => {
@@ -11,12 +12,8 @@ const DepartmentApplications = () => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    fetchApplications();
-  }, [statusFilter]);
-
-  const fetchApplications = async () => {
-    setLoading(true);
+  const fetchApplications = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const params = {};
       if (statusFilter !== 'All') params.status = statusFilter;
@@ -29,9 +26,72 @@ const DepartmentApplications = () => {
     } catch (err) {
       console.error('Failed to fetch department applications:', err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  };
+  }, [statusFilter, search]);
+
+  useEffect(() => {
+    fetchApplications();
+  }, [fetchApplications]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleStatusUpdated = (updated) => {
+      setApplications((prev) => {
+        const exists = prev.some(
+          (a) => a._id === updated.applicationId || a.applicationNumber === updated.applicationNumber
+        );
+
+        // If it's already in the list, update its status
+        if (exists) {
+          return prev.map((app) =>
+            app._id === updated.applicationId || app.applicationNumber === updated.applicationNumber
+              ? { ...app, status: updated.status }
+              : app
+          );
+        }
+
+        // If newly routed to this department, add it to list
+        if (
+          ['ROUTED_TO_DEPARTMENT', 'DEPARTMENT_VERIFICATION'].includes(updated.status) &&
+          (statusFilter === 'All' || statusFilter === updated.status)
+        ) {
+          return [
+            {
+              _id: updated.applicationId,
+              applicationNumber: updated.applicationNumber,
+              studentName: updated.studentName,
+              institutionName: updated.institutionName,
+              scholarshipName: updated.scholarshipName,
+              requestedAmount: updated.requestedAmount,
+              approvedAmount: updated.approvedAmount,
+              status: updated.status,
+              createdAt: updated.createdAt || new Date()
+            },
+            ...prev
+          ];
+        }
+
+        return prev;
+      });
+
+      fetchApplications(true);
+    };
+
+    const handleReconnect = () => {
+      fetchApplications(true);
+    };
+
+    socket.on('application_status_updated', handleStatusUpdated);
+    socket.on('connect', handleReconnect);
+
+    return () => {
+      socket.off('application_status_updated', handleStatusUpdated);
+      socket.off('connect', handleReconnect);
+    };
+  }, [fetchApplications, statusFilter]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();

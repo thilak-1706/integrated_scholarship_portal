@@ -5,10 +5,10 @@ const StatsCard = ({ title, value, subtitle, icon, iconBg = '#dbeafe', iconColor
     <div className="stats-card h-100 d-flex flex-column justify-content-between p-3 p-sm-4">
       <div className="d-flex align-items-start justify-content-between mb-2 mb-sm-3 gap-2">
         <div className="min-w-0 flex-grow-1">
-          <span className="text-muted fw-bold text-uppercase d-block text-truncate" style={{ fontSize: '0.72rem', letterSpacing: '0.06em' }}>
+          <span className="fw-bold text-uppercase d-block text-truncate" style={{ fontSize: '0.74rem', letterSpacing: '0.06em', color: '#334155', fontWeight: 800 }}>
             {title}
           </span>
-          <h3 className="fw-extrabold mb-0 mt-1" style={{ color: '#0f172a', fontSize: '1.75rem', letterSpacing: '-0.02em', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+          <h3 className="fw-bold mb-0 mt-1" style={{ color: '#0f172a', fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.02em', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
             {value}
           </h3>
         </div>
@@ -28,7 +28,7 @@ const StatsCard = ({ title, value, subtitle, icon, iconBg = '#dbeafe', iconColor
       
       <div>
         {subtitle && (
-          <p className="text-secondary mb-0 fw-medium text-truncate-2" style={{ fontSize: '0.78rem' }}>
+          <p className="mb-0 fw-bold text-truncate-2" style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 700 }}>
             {subtitle}
           </p>
         )}

@@ -98,6 +98,7 @@ const Timeline = ({ currentStatus, auditLogs = [], applicationDetails, slpTracki
     return () => {
       isMounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applicationDetails?._id, applicationDetails?.applicationNumber]);
 
   // Keep live 1-second ticker for real-time countdown / overdue calculation

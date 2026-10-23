@@ -6,6 +6,7 @@ const Institution = require('../models/Institution');
 const Department = require('../models/Department');
 const Notification = require('../models/Notification');
 const { recordAuditLog, createNotification } = require('../utils/auditHelper');
+const { emitApplicationStatusUpdated } = require('../utils/socketManager');
 const slpService = require('../services/slpService');
 const SLPTracking = require('../models/SLPTracking');
 
@@ -463,6 +464,15 @@ const verifyApplication = async (req, res) => {
         remarks: remarks || `Institute action: ${action}`
       }, action);
     }
+
+    // Emit real-time Socket.IO event to Student, Institute, Department (if routed), and Admin
+    emitApplicationStatusUpdated(application, {
+      previousStatus,
+      action,
+      remarks,
+      officerName: req.user.name,
+      officerRole: 'INSTITUTE_OFFICER'
+    });
 
     return res.status(200).json({
       success: true,

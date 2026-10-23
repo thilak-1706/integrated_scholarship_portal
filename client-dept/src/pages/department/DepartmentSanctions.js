@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PortalLayout from '../../components/layout/PortalLayout';
 import api from '../../services/api';
+import { getSocket } from '../../services/socket';
 import { Award, Printer, CheckCircle, PlusCircle, ShieldCheck, Download } from 'lucide-react';
 
 const DepartmentSanctions = () => {
@@ -16,12 +17,8 @@ const DepartmentSanctions = () => {
   const [generating, setGenerating] = useState(false);
   const [feedback, setFeedback] = useState({ type: '', message: '' });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const [sanctionsRes, appsRes] = await Promise.all([
         api.get('/department/sanctions'),
@@ -31,21 +28,42 @@ const DepartmentSanctions = () => {
       if (sanctionsRes.data.success) {
         setSanctions(sanctionsRes.data.sanctions || []);
         if (sanctionsRes.data.sanctions?.length > 0) {
-          setSelectedSanction(sanctionsRes.data.sanctions[0]);
+          setSelectedSanction((prev) => prev || sanctionsRes.data.sanctions[0]);
         }
       }
       if (appsRes.data.success) {
         setApprovedApplications(appsRes.data.applications || []);
         if (appsRes.data.applications?.length > 0) {
-          setSelectedAppId(appsRes.data.applications[0]._id);
+          setSelectedAppId((prev) => prev || appsRes.data.applications[0]._id);
         }
       }
     } catch (err) {
       console.error('Failed to load sanctions data:', err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleUpdate = () => {
+      fetchData(true);
+    };
+
+    socket.on('sanction_generated', handleUpdate);
+    socket.on('application_status_updated', handleUpdate);
+    socket.on('connect', handleUpdate);
+
+    return () => {
+      socket.off('sanction_generated', handleUpdate);
+      socket.off('application_status_updated', handleUpdate);
+      socket.off('connect', handleUpdate);
+    };
+  }, [fetchData]);
 
   const handleGenerateSanction = async (e) => {
     e.preventDefault();

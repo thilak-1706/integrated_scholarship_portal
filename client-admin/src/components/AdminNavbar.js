@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Swal from 'sweetalert2';
-import { 
-  ShieldCheck, 
-  LayoutDashboard, 
-  Users, 
-  ExternalLink, 
-  LogOut, 
-  Menu, 
+import {
+  ShieldCheck,
+  LayoutDashboard,
+  Users,
+  ExternalLink,
+  LogOut,
+  Menu,
   X,
-  ChevronDown 
+  ChevronDown
 } from 'lucide-react';
 
 const AdminNavbar = () => {
@@ -91,11 +91,10 @@ const AdminNavbar = () => {
           <div className="d-flex align-items-center gap-1.5 me-3">
             <Link
               to="/admin/dashboard"
-              className={`btn btn-sm rounded-pill px-3.5 py-1.5 fw-semibold d-flex align-items-center gap-1.5 ${
-                isActive('/admin/dashboard')
+              className={`btn btn-sm rounded-pill px-3.5 py-1.5 fw-semibold d-flex align-items-center gap-1.5 ${isActive('/admin/dashboard')
                   ? 'btn-danger text-white shadow-sm'
                   : 'btn-outline-secondary text-white-50 border-secondary border-opacity-25 hover-text-white'
-              }`}
+                }`}
               style={{ fontSize: '0.82rem' }}
             >
               <LayoutDashboard size={15} />
@@ -104,11 +103,10 @@ const AdminNavbar = () => {
 
             <Link
               to="/admin/students"
-              className={`btn btn-sm rounded-pill px-3.5 py-1.5 fw-semibold d-flex align-items-center gap-1.5 ${
-                isActive('/admin/students')
+              className={`btn btn-sm rounded-pill px-3.5 py-1.5 fw-semibold d-flex align-items-center gap-1.5 ${isActive('/admin/students')
                   ? 'btn-danger text-white shadow-sm'
                   : 'btn-outline-secondary text-white-50 border-secondary border-opacity-25 hover-text-white'
-              }`}
+                }`}
               style={{ fontSize: '0.82rem' }}
             >
               <Users size={15} />

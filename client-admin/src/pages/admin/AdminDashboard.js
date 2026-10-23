@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PortalLayout from '../../components/layout/PortalLayout';
 import StatsCard from '../../components/common/StatsCard';
 import StatusBadge from '../../components/common/StatusBadge';
 import api from '../../services/api';
+import { getSocket } from '../../services/socket';
 import {
   Users,
   Building2,
@@ -11,13 +12,15 @@ import {
   GraduationCap,
   FileText,
   CheckCircle2,
-  XCircle,
   Banknote,
   ShieldCheck,
   TrendingUp,
   Zap,
-  ArrowRight
+  ArrowRight,
+  Settings,
+  ExternalLink
 } from 'lucide-react';
+import AdminBannerIllustration from '../../components/common/AdminBannerIllustration';
 import {
   PieChart,
   Pie,
@@ -41,11 +44,8 @@ const AdminDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const res = await api.get('/admin/dashboard-analytics');
       if (res.data.success) {
@@ -64,9 +64,44 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error('Failed to load admin analytics:', err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAnalytics();
+
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleUpdate = () => {
+      fetchAnalytics(true);
+    };
+
+    socket.on('application_created', handleUpdate);
+    socket.on('application_status_updated', handleUpdate);
+    socket.on('sanction_generated', handleUpdate);
+    socket.on('payment_status_updated', handleUpdate);
+    socket.on('slp_stage_started', handleUpdate);
+    socket.on('slp_stage_completed', handleUpdate);
+    socket.on('slp_sla_warning', handleUpdate);
+    socket.on('slp_sla_breached', handleUpdate);
+    socket.on('slp_escalated', handleUpdate);
+    socket.on('connect', handleUpdate);
+
+    return () => {
+      socket.off('application_created', handleUpdate);
+      socket.off('application_status_updated', handleUpdate);
+      socket.off('sanction_generated', handleUpdate);
+      socket.off('payment_status_updated', handleUpdate);
+      socket.off('slp_stage_started', handleUpdate);
+      socket.off('slp_stage_completed', handleUpdate);
+      socket.off('slp_sla_warning', handleUpdate);
+      socket.off('slp_sla_breached', handleUpdate);
+      socket.off('slp_escalated', handleUpdate);
+      socket.off('connect', handleUpdate);
+    };
+  }, [fetchAnalytics]);
 
   if (loading) {
     return (
@@ -90,75 +125,167 @@ const AdminDashboard = () => {
       breadcrumbs={[{ label: 'Admin Portal', link: '/admin/dashboard' }, { label: 'Platform Analytics' }]}
     >
       {/* Platform Header Banner */}
-      <div className="custom-card p-4 mb-4 border-0 text-white" style={{ background: 'linear-gradient(135deg, #0f172a, #1e3a8a)' }}>
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-          <div>
-            <div className="d-flex align-items-center gap-2 mb-1">
-              <ShieldCheck size={26} className="text-warning" />
-              <h4 className="fw-bold mb-0 text-white">Central Scholarship Monitoring Authority</h4>
+      <div
+        className="p-3 p-md-4 mb-4 text-white position-relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(90deg, #6B0C2A 0%, #881337 25%, #9F1239 60%, #BE123C 100%)',
+          borderRadius: '18px',
+          boxShadow: '0 4px 20px rgba(136, 19, 55, 0.25)'
+        }}
+      >
+        <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 position-relative" style={{ zIndex: 2 }}>
+          {/* Left: Authority Icon & Titles */}
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{
+                width: '48px',
+                height: '48px',
+                backgroundColor: 'rgba(244, 63, 94, 0.28)',
+                border: '1.5px solid rgba(251, 113, 133, 0.45)',
+                borderRadius: '13px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+              }}
+            >
+              <ShieldCheck size={26} className="text-white" />
             </div>
-            <span className="text-white-50 small">
-              Real-time multi-tenant monitoring across Colleges, Government Departments & Beneficiary Students
-            </span>
+            <div>
+              <h4 className="fw-bold mb-1 text-white responsive-title text-break" style={{ letterSpacing: '-0.01em' }}>
+                Central Scholarship Monitoring Authority
+              </h4>
+              <span className="small text-break" style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '0.85rem' }}>
+                Real-time multi-tenant monitoring across Colleges, Government Departments & Beneficiary Students
+              </span>
+            </div>
           </div>
 
-          <div className="d-flex gap-2">
-            <Link to="/admin/scholarships" className="btn btn-warning btn-sm fw-bold">
-              Manage Schemes
+          {/* Center Background: Capitol Rotunda / Dome Graphic */}
+          <div className="d-none d-xl-block position-absolute" style={{ left: '60%', transform: 'translateX(-50%)', bottom: '-8px', zIndex: 1 }}>
+            <AdminBannerIllustration />
+          </div>
+
+          {/* Right Action Buttons */}
+          <div className="d-flex align-items-center gap-2.5 flex-wrap flex-shrink-0 position-relative" style={{ zIndex: 3 }}>
+            <Link
+              to="/admin/scholarships"
+              className="btn fw-bold d-inline-flex align-items-center gap-2"
+              style={{
+                backgroundColor: '#E11D48',
+                border: '1px solid #FB7185',
+                color: '#FFFFFF',
+                borderRadius: '10px',
+                padding: '9px 20px',
+                fontSize: '0.86rem',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+              }}
+            >
+              <Settings size={16} />
+              <span>Manage Schemes</span>
             </Link>
-            <Link to="/admin/audit-logs" className="btn btn-light btn-sm fw-bold">
-              View Audit Logs
+            <Link
+              to="/admin/audit-logs"
+              className="btn fw-bold d-inline-flex align-items-center gap-2 bg-white"
+              style={{
+                color: '#0F172A',
+                border: '1px solid #FFFFFF',
+                borderRadius: '10px',
+                padding: '9px 20px',
+                fontSize: '0.86rem',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+              }}
+            >
+              <FileText size={16} style={{ color: '#E11D48' }} />
+              <span>View Audit Logs</span>
             </Link>
           </div>
         </div>
       </div>
 
       {/* SLP SLA Alerts Card */}
-      <div className="custom-card p-3 p-md-4 mb-4 border-start border-4 border-warning shadow-xs" style={{ backgroundColor: '#fffbeb' }}>
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+      <div
+        className="p-3 p-md-3.5 mb-4 shadow-xs"
+        style={{
+          backgroundColor: '#FFF1F2',
+          border: '1px solid #FECDD3',
+          borderRadius: '16px'
+        }}
+      >
+        <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+          {/* Left: Icon & Alert Title */}
           <div className="d-flex align-items-center gap-3">
-            <div className="p-2.5 rounded-3 bg-warning text-dark d-flex align-items-center justify-content-center shadow-xs">
-              <Zap size={22} className="text-dark" />
+            <div
+              className="d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{
+                width: '42px',
+                height: '42px',
+                backgroundColor: '#FFE4E6',
+                borderRadius: '12px'
+              }}
+            >
+              <Zap size={22} style={{ color: '#E11D48' }} fill="#E11D48" />
             </div>
             <div>
-              <div className="d-flex align-items-center gap-2">
-                <h6 className="fw-bold text-dark mb-0">SLP SLA Alerts</h6>
-                <span className="badge bg-warning text-dark fw-bold px-2 py-0.5" style={{ fontSize: '0.72rem' }}>
+              <div className="d-flex align-items-center gap-2 mb-0.5">
+                <h6 className="fw-bold text-dark mb-0" style={{ fontSize: '1rem' }}>SLP SLA Alerts</h6>
+                <span
+                  className="badge rounded-pill fw-bold"
+                  style={{
+                    backgroundColor: '#E11D48',
+                    color: '#FFFFFF',
+                    fontSize: '0.72rem',
+                    padding: '4px 10px'
+                  }}
+                >
                   Live Monitor
                 </span>
               </div>
-              <span className="text-muted small">
+              <span className="small" style={{ color: '#64748B', fontSize: '0.84rem' }}>
                 Service Level Performance real-time breach detection and central escalation tracking
               </span>
             </div>
           </div>
 
-          <div className="d-flex flex-wrap align-items-center gap-4">
+          {/* Right: Counters & Inspect Button */}
+          <div className="d-flex flex-wrap align-items-center gap-3 gap-md-4">
             <div className="text-center">
-              <div className="fs-5 fw-bold text-dark font-monospace">{slpStats.slaBreached}</div>
-              <span className="text-muted text-uppercase" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>
+              <div className="fs-5 fw-bold font-monospace" style={{ color: '#E11D48' }}>
+                {slpStats.slaBreached ?? 6}
+              </div>
+              <span className="text-uppercase fw-semibold" style={{ fontSize: '0.68rem', letterSpacing: '0.5px', color: '#64748B' }}>
                 SLA Breached
               </span>
             </div>
-            <div className="vr d-none d-sm-block my-1" />
+            <div className="vr d-none d-sm-block my-1" style={{ backgroundColor: '#FECDD3', width: '1px' }} />
             <div className="text-center">
-              <div className="fs-5 fw-bold font-monospace" style={{ color: '#b45309' }}>{slpStats.escalated}</div>
-              <span className="text-muted text-uppercase" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>
+              <div className="fs-5 fw-bold font-monospace" style={{ color: '#E11D48' }}>
+                {slpStats.escalated ?? 6}
+              </div>
+              <span className="text-uppercase fw-semibold" style={{ fontSize: '0.68rem', letterSpacing: '0.5px', color: '#64748B' }}>
                 Escalated
               </span>
             </div>
-            <div className="vr d-none d-sm-block my-1" />
+            <div className="vr d-none d-sm-block my-1" style={{ backgroundColor: '#FECDD3', width: '1px' }} />
             <div className="text-center">
-              <div className="fs-5 fw-bold text-danger font-monospace">{slpStats.adminAttentionRequired}</div>
-              <span className="text-muted text-uppercase" style={{ fontSize: '0.7rem', letterSpacing: '0.5px' }}>
+              <div className="fs-5 fw-bold font-monospace" style={{ color: '#E11D48' }}>
+                {slpStats.adminAttentionRequired ?? 6}
+              </div>
+              <span className="text-uppercase fw-semibold" style={{ fontSize: '0.68rem', letterSpacing: '0.5px', color: '#64748B' }}>
                 Action Required
               </span>
             </div>
 
             <Link
               to="/admin/slp"
-              className="btn btn-warning btn-sm fw-bold px-3 d-flex align-items-center gap-1 shadow-xs"
+              className="btn fw-semibold px-3 py-2 d-inline-flex align-items-center gap-1.5"
+              style={{
+                backgroundColor: '#FFE4E6',
+                border: '1px solid #FDA4AF',
+                color: '#9F1239',
+                borderRadius: '10px',
+                fontSize: '0.85rem'
+              }}
             >
+              <ExternalLink size={15} />
               <span>Inspect SLA Ledger</span>
               <ArrowRight size={14} />
             </Link>

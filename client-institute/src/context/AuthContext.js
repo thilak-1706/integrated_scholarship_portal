@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '../services/api';
+import { connectSocket, disconnectSocket } from '../services/socket';
 
 const AuthContext = createContext(null);
 
@@ -19,6 +20,7 @@ export const AuthProvider = ({ children }) => {
           if (res.data.success) {
             setUser(res.data.user);
             localStorage.setItem('nsp_user', JSON.stringify(res.data.user));
+            connectSocket(token);
           }
         } catch (error) {
           console.error('Session validation error:', error);
@@ -41,6 +43,7 @@ export const AuthProvider = ({ children }) => {
         setUser(res.data.user);
         localStorage.setItem('nsp_token', res.data.token);
         localStorage.setItem('nsp_user', JSON.stringify(res.data.user));
+        connectSocket(res.data.token);
         return { success: true, user: res.data.user };
       }
     } catch (error) {
@@ -59,6 +62,7 @@ export const AuthProvider = ({ children }) => {
         setUser(res.data.user);
         localStorage.setItem('nsp_token', res.data.token);
         localStorage.setItem('nsp_user', JSON.stringify(res.data.user));
+        connectSocket(res.data.token);
         return { success: true, user: res.data.user };
       }
     } catch (error) {
@@ -70,6 +74,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    disconnectSocket();
     setToken(null);
     setUser(null);
     localStorage.removeItem('nsp_token');

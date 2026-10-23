@@ -8,8 +8,7 @@ import {
   CheckCircle2,
   FileText,
   RefreshCw,
-  Landmark,
-  AlertCircle
+  Landmark
 } from 'lucide-react';
 
 const DepartmentFeedback = () => {

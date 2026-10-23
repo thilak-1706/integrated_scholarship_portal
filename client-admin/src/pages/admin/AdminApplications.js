@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PortalLayout from '../../components/layout/PortalLayout';
 import StatusBadge from '../../components/common/StatusBadge';
 import api from '../../services/api';
+import { getSocket } from '../../services/socket';
 import { FileText, Search, Filter, ShieldCheck, Download, Printer, AlertTriangle } from 'lucide-react';
 
 const AdminApplications = () => {
@@ -16,13 +17,8 @@ const AdminApplications = () => {
   const [deptFilter, setDeptFilter] = useState('All');
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    fetchApplications();
-    fetchFilterOptions();
-  }, [statusFilter, instFilter, deptFilter]);
-
-  const fetchApplications = async () => {
-    setLoading(true);
+  const fetchApplications = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const params = {};
       if (statusFilter !== 'All') params.status = statusFilter;
@@ -37,9 +33,37 @@ const AdminApplications = () => {
     } catch (err) {
       console.error('Failed to load admin applications:', err);
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
-  };
+  }, [statusFilter, instFilter, deptFilter, search]);
+
+  useEffect(() => {
+    fetchApplications();
+    fetchFilterOptions();
+  }, [fetchApplications]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleUpdate = () => {
+      fetchApplications(true);
+    };
+
+    socket.on('application_created', handleUpdate);
+    socket.on('application_status_updated', handleUpdate);
+    socket.on('sanction_generated', handleUpdate);
+    socket.on('payment_status_updated', handleUpdate);
+    socket.on('connect', handleUpdate);
+
+    return () => {
+      socket.off('application_created', handleUpdate);
+      socket.off('application_status_updated', handleUpdate);
+      socket.off('sanction_generated', handleUpdate);
+      socket.off('payment_status_updated', handleUpdate);
+      socket.off('connect', handleUpdate);
+    };
+  }, [fetchApplications]);
 
   const fetchFilterOptions = async () => {
     try {
