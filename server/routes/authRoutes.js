@@ -3,6 +3,9 @@ const router = express.Router();
 const {
   login,
   registerStudent,
+  registerInstituteOfficer,
+  registerDepartmentOfficer,
+  registerAdmin,
   getMe,
   updateProfile,
   getPublicInstitutions,
@@ -13,8 +16,19 @@ const { protect } = require('../middleware/authMiddleware');
 // Universal Login
 router.post('/login', login);
 
-// Student Registration
+// Registrations for all roles
 router.post('/register', registerStudent);
+router.post('/register-student', registerStudent);
+router.post('/register/student', registerStudent);
+
+router.post('/register-institute', registerInstituteOfficer);
+router.post('/register/institute', registerInstituteOfficer);
+
+router.post('/register-department', registerDepartmentOfficer);
+router.post('/register/department', registerDepartmentOfficer);
+
+router.post('/register-admin', registerAdmin);
+router.post('/register/admin', registerAdmin);
 
 // Public Metadata Endpoints for Registration & Browsing
 router.get('/institutions', getPublicInstitutions);

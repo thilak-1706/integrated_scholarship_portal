@@ -73,6 +73,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const registerAdmin = async (formData) => {
+    try {
+      const res = await api.post('/auth/register-admin', formData);
+      if (res.data.success) {
+        setToken(res.data.token);
+        setUser(res.data.user);
+        localStorage.setItem('nsp_token', res.data.token);
+        localStorage.setItem('nsp_user', JSON.stringify(res.data.user));
+        connectSocket(res.data.token);
+        return { success: true, user: res.data.user };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Admin registration failed.'
+      };
+    }
+  };
+
   const logout = () => {
     disconnectSocket();
     setToken(null);
@@ -93,6 +112,8 @@ export const AuthProvider = ({ children }) => {
         token,
         loading,
         login,
+        register: registerAdmin,
+        registerAdmin,
         registerStudent,
         logout,
         updateUserProfile,

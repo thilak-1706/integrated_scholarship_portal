@@ -73,9 +73,20 @@ const getStudentDashboard = async (req, res) => {
       .populate('departmentId', 'name type')
       .limit(4);
 
-    // Recent notifications
+    // Recent notifications: only this particular student's notifications or public announcements with no user target
     const notifications = await Notification.find({
-      $or: [{ userId: studentId }, { recipientRole: 'STUDENT' }, { recipientRole: 'ALL' }]
+      $or: [
+        { userId: studentId },
+        { studentId: studentId },
+        { studentEmail: user.email },
+        {
+          $and: [
+            { $or: [{ userId: null }, { userId: { $exists: false } }] },
+            { $or: [{ studentId: null }, { studentId: { $exists: false } }] },
+            { recipientRole: { $in: ['STUDENT', 'ALL'] } }
+          ]
+        }
+      ]
     })
       .sort({ createdAt: -1 })
       .limit(5);
@@ -358,6 +369,9 @@ const applyScholarship = async (req, res) => {
     // Create In-App Notification for Student
     await createNotification({
       userId: student._id,
+      studentId: student._id,
+      studentEmail: student.email,
+      studentName: student.name,
       recipientRole: 'STUDENT',
       title: 'Application Submitted Successfully! 📄',
       message: `Your application (${application.applicationNumber}) for "${scholarship.name}" has been submitted and routed to your Institute Officer for verification.`,
@@ -672,11 +686,23 @@ const getMyPayments = async (req, res) => {
 const getNotifications = async (req, res) => {
   try {
     const studentId = req.user._id;
+    const studentEmail = req.user.email;
     const notifications = await Notification.find({
-      $or: [{ userId: studentId }, { recipientRole: 'STUDENT' }, { recipientRole: 'ALL' }]
+      $or: [
+        { userId: studentId },
+        { studentId: studentId },
+        { studentEmail: studentEmail },
+        {
+          $and: [
+            { $or: [{ userId: null }, { userId: { $exists: false } }] },
+            { $or: [{ studentId: null }, { studentId: { $exists: false } }] },
+            { recipientRole: { $in: ['STUDENT', 'ALL'] } }
+          ]
+        }
+      ]
     }).sort({ createdAt: -1 });
 
-    const unreadCount = notifications.filter((n) => !n.isRead).length;
+    const unreadCount = notifications.filter((n) => !n.isRead && !n.read).length;
 
     return res.status(200).json({
       success: true,
@@ -699,10 +725,33 @@ const getNotifications = async (req, res) => {
 // @access  Private
 const markNotificationRead = async (req, res) => {
   try {
-    const notif = await Notification.findByIdAndUpdate(req.params.id, { isRead: true }, { new: true });
+    const notif = await Notification.findByIdAndUpdate(req.params.id, { isRead: true, read: true }, { new: true });
     return res.status(200).json({ success: true, notification: notif });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Error marking read' });
+  }
+};
+
+// @desc    Mark All Notifications Read for Student
+// @route   PUT /api/student/notifications/read-all
+// @access  Private
+const markAllNotificationsRead = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    const studentEmail = req.user.email;
+    await Notification.updateMany(
+      {
+        $or: [
+          { userId: studentId },
+          { studentId: studentId },
+          { studentEmail: studentEmail }
+        ]
+      },
+      { isRead: true, read: true }
+    );
+    return res.status(200).json({ success: true, message: 'All notifications marked as read' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Error marking all read' });
   }
 };
 
@@ -716,5 +765,7 @@ module.exports = {
   resubmitCorrection,
   getMyPayments,
   getNotifications,
-  markNotificationRead
+  markNotificationRead,
+  markAllNotificationsRead
 };
+

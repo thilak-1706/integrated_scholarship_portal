@@ -10,11 +10,6 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const fillDemoCredentials = () => {
-    setEmail('admin@nsp.gov.in');
-    setPassword('admin123');
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -139,22 +134,7 @@ const AdminLogin = () => {
             </button>
           </form>
 
-          {/* Quick Demo Helper Box */}
-          <div className="mt-4 p-3 bg-light rounded-3 border">
-            <div className="d-flex align-items-center justify-content-between">
-              <div>
-                <small className="text-muted d-block">Default Officer Credentials:</small>
-                <strong className="small text-dark">admin@nsp.gov.in / admin123</strong>
-              </div>
-              <button
-                type="button"
-                className="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold"
-                onClick={fillDemoCredentials}
-              >
-                Auto-Fill
-              </button>
-            </div>
-          </div>
+
 
           <div className="text-center mt-4">
             <button

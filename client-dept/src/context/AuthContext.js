@@ -73,6 +73,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const registerDepartment = async (formData) => {
+    try {
+      const res = await api.post('/auth/register-department', formData);
+      if (res.data.success) {
+        setToken(res.data.token);
+        setUser(res.data.user);
+        localStorage.setItem('nsp_token', res.data.token);
+        localStorage.setItem('nsp_user', JSON.stringify(res.data.user));
+        connectSocket(res.data.token);
+        return { success: true, user: res.data.user };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Department registration failed.'
+      };
+    }
+  };
+
   const logout = () => {
     disconnectSocket();
     setToken(null);
@@ -93,6 +112,8 @@ export const AuthProvider = ({ children }) => {
         token,
         loading,
         login,
+        register: registerDepartment,
+        registerDepartment,
         registerStudent,
         logout,
         updateUserProfile,

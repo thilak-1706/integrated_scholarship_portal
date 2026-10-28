@@ -219,7 +219,7 @@ const StudentDashboard = () => {
       title: 'Feedback Response Received from Admin',
       time: '2 hours ago',
       message: 'Admin responded to your feedback "NOT APPROVED", THR QUERY WAS RECEIVED. WE WILL TAKE THE NECESSARY ACTION REGARDING THIS',
-      borderType: 'primary'
+      borderType: 'success'
     },
     {
       _id: 'def-2',
@@ -290,10 +290,10 @@ const StudentDashboard = () => {
       <div
         className="p-3.5 p-sm-4 p-md-4 mb-4 border position-relative overflow-hidden"
         style={{
-          background: 'linear-gradient(135deg, #DBEAFE 0%, #EFF6FF 48%, #E0F2FE 100%)',
-          borderColor: '#BFDBFE',
+          background: 'linear-gradient(135deg, #D1FAE5 0%, #ECFDF5 48%, #E6FBF2 100%)',
+          borderColor: '#A7F3D0',
           borderRadius: '18px',
-          boxShadow: '0 1px 3px rgba(37, 99, 235, 0.05)'
+          boxShadow: '0 1px 3px rgba(16, 185, 129, 0.08)'
         }}
       >
         <div className="row align-items-center position-relative g-3" style={{ zIndex: 2 }}>
@@ -366,7 +366,7 @@ const StudentDashboard = () => {
                 <Link
                   to="/student/profile"
                   className="small text-decoration-none fw-semibold d-inline-flex align-items-center gap-1"
-                  style={{ fontSize: '0.78rem', color: '#2563EB' }}
+                  style={{ fontSize: '0.78rem', color: '#059669' }}
                 >
                   <span>View Full Profile</span>
                   <i className="bi bi-arrow-right" style={{ fontSize: '0.8rem' }}></i>
@@ -390,8 +390,8 @@ const StudentDashboard = () => {
             value={stats.totalApplications ?? 2}
             subtitle="Submitted grants"
             icon={<i className="bi bi-file-earmark-text" style={{ fontSize: '1.25rem' }}></i>}
-            iconBg="#EFF6FF"
-            iconColor="#2563EB"
+            iconBg="#ECFDF5"
+            iconColor="#059669"
           />
         </div>
         <div className="col-12 col-sm-6 col-xl-3">
@@ -446,7 +446,7 @@ const StudentDashboard = () => {
                   style={{
                     width: '38px',
                     height: '38px',
-                    backgroundColor: '#2563EB',
+                    backgroundColor: '#10B981',
                     borderRadius: '10px',
                     marginRight: '14px'
                   }}
@@ -467,9 +467,9 @@ const StudentDashboard = () => {
                 to="/student/applications"
                 className="btn rounded-pill fw-semibold d-inline-flex align-items-center gap-1.5"
                 style={{
-                  backgroundColor: '#E8F0FE',
-                  color: '#2563EB',
-                  border: 'none',
+                  backgroundColor: '#ECFDF5',
+                  color: '#059669',
+                  border: '1px solid #A7F3D0',
                   padding: '6px 16px',
                   fontSize: '0.82rem'
                 }}
@@ -492,7 +492,7 @@ const StudentDashboard = () => {
                 <Link
                   to="/student/scholarships"
                   className="btn btn-primary btn-sm rounded-pill px-4 py-2 fw-semibold"
-                  style={{ backgroundColor: '#2563EB', borderColor: '#2563EB' }}
+                  style={{ backgroundColor: '#10B981', borderColor: '#10B981' }}
                 >
                   Browse Open Schemes
                 </Link>
@@ -535,9 +535,9 @@ const StudentDashboard = () => {
                           <span
                             className="badge rounded-pill fw-bold font-monospace"
                             style={{
-                              backgroundColor: '#EFF6FF',
-                              color: '#2563EB',
-                              border: '1px solid #BFDBFE',
+                              backgroundColor: '#ECFDF5',
+                              color: '#059669',
+                              border: '1px solid #A7F3D0',
                               fontSize: '0.78rem',
                               padding: '5px 14px'
                             }}
@@ -593,8 +593,8 @@ const StudentDashboard = () => {
                             className="btn btn-sm rounded-pill fw-semibold d-inline-flex align-items-center gap-1.5"
                             style={{
                               backgroundColor: '#FFFFFF',
-                              borderColor: '#3B82F6',
-                              color: '#2563EB',
+                              borderColor: '#10B981',
+                              color: '#059669',
                               borderWidth: '1.5px',
                               fontSize: '0.82rem',
                               padding: '5px 18px'
@@ -626,7 +626,7 @@ const StudentDashboard = () => {
           >
             <div className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom" style={{ borderColor: '#F1F5F9' }}>
               <div className="d-flex align-items-center gap-2">
-                <i className="bi bi-bell-fill text-primary" style={{ fontSize: '1rem', color: '#2563EB' }}></i>
+                <i className="bi bi-bell-fill" style={{ fontSize: '1rem', color: '#059669' }}></i>
                 <h6 className="fw-bold mb-0" style={{ color: '#0F172A', fontSize: '0.95rem' }}>
                   Recent Alerts
                 </h6>
@@ -634,7 +634,7 @@ const StudentDashboard = () => {
               <Link
                 to="/student/notifications"
                 className="small fw-semibold text-decoration-none d-inline-flex align-items-center gap-1"
-                style={{ fontSize: '0.78rem', color: '#2563EB' }}
+                style={{ fontSize: '0.78rem', color: '#059669' }}
               >
                 <span>View All</span>
                 <i className="bi bi-arrow-right" style={{ fontSize: '0.75rem' }}></i>
@@ -652,7 +652,7 @@ const StudentDashboard = () => {
                       ? '#10B981'
                       : alert.borderType === 'warning'
                         ? '#F59E0B'
-                        : '#2563EB'
+                        : '#10B981'
                       }`,
                     fontSize: '0.8rem'
                   }}
@@ -718,8 +718,8 @@ const StudentDashboard = () => {
               to={topRecommended._id && topRecommended._id !== 'default-csss' ? `/student/scholarships/${topRecommended._id}` : '/student/scholarships'}
               className="btn btn-primary rounded-pill w-100 py-2 fw-semibold d-flex align-items-center justify-content-center gap-1.5 shadow-xs"
               style={{
-                backgroundColor: '#2563EB',
-                borderColor: '#2563EB',
+                backgroundColor: '#10B981',
+                borderColor: '#10B981',
                 fontSize: '0.82rem'
               }}
             >

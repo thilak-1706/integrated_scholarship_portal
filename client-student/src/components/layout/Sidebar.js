@@ -61,7 +61,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       text: 'Are you sure you want to end your student session?',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#2563EB',
+      confirmButtonColor: '#10B981',
       cancelButtonColor: '#64748B',
       confirmButtonText: 'Yes, Sign Out'
     }).then((result) => {
@@ -95,13 +95,13 @@ const Sidebar = ({ isOpen, onClose }) => {
           }}
         >
           <div className="d-flex align-items-center" style={{ gap: '14px' }}>
-            {/* Blue Rounded Square Logo with White Outline Graduation Cap */}
+            {/* Green Rounded Square Logo with White Outline Graduation Cap */}
             <div
               className="d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs"
               style={{
                 width: '42px',
                 height: '42px',
-                backgroundColor: '#2563EB',
+                backgroundColor: '#10B981',
                 borderRadius: '12px',
                 marginRight: '14px'
               }}
@@ -153,7 +153,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 className="d-block"
                 style={{
                   fontSize: '0.78rem',
-                  color: '#2563EB',
+                  color: '#059669',
                   fontWeight: 500,
                   lineHeight: '1.2',
                   marginTop: '3px'

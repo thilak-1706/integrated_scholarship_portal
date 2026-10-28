@@ -228,7 +228,7 @@ const Timeline = ({ currentStatus, auditLogs = [], applicationDetails, slpTracki
                     color: nodeClass.includes('sla-breached')
                       ? '#b45309'
                       : nodeClass.includes('current')
-                      ? '#2563eb'
+                      ? '#059669'
                       : nodeClass.includes('completed')
                       ? '#0f172a'
                       : '#64748b'
@@ -290,7 +290,7 @@ const Timeline = ({ currentStatus, auditLogs = [], applicationDetails, slpTracki
                     <div className="mt-1.5 pt-1.5 border-top border-warning border-opacity-25 small text-secondary d-flex flex-wrap justify-content-between align-items-center gap-1">
                       <span>
                         SLA Limit: <strong className="text-dark">{formatSeconds(stageDuration)}</strong> &bull; Status:{' '}
-                        <strong style={{ color: isStageBreached ? '#b45309' : '#2563eb' }}>
+                        <strong style={{ color: isStageBreached ? '#b45309' : '#059669' }}>
                           {isStageBreached ? 'SLA BREACHED' : 'WITHIN SLA'}
                         </strong>
                       </span>

@@ -26,6 +26,8 @@ function App() {
           <Route path="/login" element={<DepartmentLogin />} />
           <Route path="/department/login" element={<DepartmentLogin />} />
           <Route path="/login/department" element={<DepartmentLogin />} />
+          <Route path="/register" element={<DepartmentLogin initialMode="signup" />} />
+          <Route path="/department/register" element={<DepartmentLogin initialMode="signup" />} />
 
           {/* Department Officer Portal Routes */}
           <Route

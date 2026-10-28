@@ -156,11 +156,14 @@ const submitApplication = async (req, res) => {
     // Create In-App Notification for Student
     try {
       await Notification.create({
+        userId: studentId,
         studentId,
         studentEmail: finalStudentEmail,
+        recipientRole: 'STUDENT',
         title: 'Scholarship Application Submitted',
         message: `Your application for ${application.schemeTitle} (${application.submissionType}) has been submitted successfully (Ref: ${application.refNo}). It is currently queued for State Officer Verification.`,
         type: 'info',
+        applicationNumber: application.refNo,
         refNo: application.refNo,
         schemeId: application.schemeId,
         schemeTitle: application.schemeTitle
@@ -264,11 +267,14 @@ const updateApplicationStatus = async (req, res) => {
     try {
       if (status === 'Approved') {
         await Notification.create({
+          userId: application.studentId,
           studentId: application.studentId,
           studentEmail: application.studentEmail,
+          recipientRole: 'STUDENT',
           title: 'Scholarship Application Approved! 🎉',
           message: `Congratulations! Your scholarship application for ${application.schemeTitle} (Ref: ${application.refNo}) has been Approved and Sanctioned for disbursement (${application.amount}).`,
           type: 'success',
+          applicationNumber: application.refNo,
           refNo: application.refNo,
           schemeId: application.schemeId,
           schemeTitle: application.schemeTitle,
@@ -276,11 +282,14 @@ const updateApplicationStatus = async (req, res) => {
         });
       } else if (status === 'Rejected') {
         await Notification.create({
+          userId: application.studentId,
           studentId: application.studentId,
           studentEmail: application.studentEmail,
+          recipientRole: 'STUDENT',
           title: 'Application Rejected / Returned ⚠️',
           message: `Your scholarship application (Ref: ${application.refNo}) for ${application.schemeTitle} was returned. Reason: "${remarks || 'Document verification incomplete'}". You can review the reason and re-apply.`,
           type: 'danger',
+          applicationNumber: application.refNo,
           refNo: application.refNo,
           schemeId: application.schemeId,
           schemeTitle: application.schemeTitle,
@@ -309,18 +318,36 @@ const updateApplicationStatus = async (req, res) => {
 // Get Student Notifications
 const getStudentNotifications = async (req, res) => {
   try {
-    const studentId = req.student ? req.student._id : null;
-    const studentEmail = req.student ? req.student.email : null;
+    const studentUser = req.user || req.student;
+    const studentId = studentUser ? studentUser._id : null;
+    const studentEmail = studentUser ? studentUser.email : null;
 
-    let query = {};
-    if (studentId) {
-      query = { $or: [{ studentId }, { studentEmail }] };
-    } else if (studentEmail) {
-      query = { studentEmail };
+    if (!studentId && !studentEmail) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        unreadCount: 0,
+        notifications: []
+      });
     }
 
+    const query = {
+      $or: [
+        { userId: studentId },
+        { studentId: studentId },
+        { studentEmail: studentEmail },
+        {
+          $and: [
+            { $or: [{ userId: null }, { userId: { $exists: false } }] },
+            { $or: [{ studentId: null }, { studentId: { $exists: false } }] },
+            { recipientRole: { $in: ['STUDENT', 'ALL'] } }
+          ]
+        }
+      ]
+    };
+
     const notifications = await Notification.find(query).sort({ createdAt: -1 }).limit(30);
-    const unreadCount = notifications.filter((n) => !n.read).length;
+    const unreadCount = notifications.filter((n) => !n.read && !n.isRead).length;
 
     res.status(200).json({
       success: true,
@@ -342,7 +369,7 @@ const getStudentNotifications = async (req, res) => {
 const markNotificationRead = async (req, res) => {
   try {
     const { id } = req.params;
-    const notification = await Notification.findByIdAndUpdate(id, { read: true }, { new: true });
+    const notification = await Notification.findByIdAndUpdate(id, { read: true, isRead: true }, { new: true });
 
     res.status(200).json({
       success: true,
@@ -361,17 +388,26 @@ const markNotificationRead = async (req, res) => {
 // Mark All Notifications as Read
 const markAllNotificationsRead = async (req, res) => {
   try {
-    const studentId = req.student ? req.student._id : null;
-    const studentEmail = req.student ? req.student.email : null;
+    const studentUser = req.user || req.student;
+    const studentId = studentUser ? studentUser._id : null;
+    const studentEmail = studentUser ? studentUser.email : null;
 
-    let query = {};
-    if (studentId) {
-      query = { $or: [{ studentId }, { studentEmail }] };
-    } else if (studentEmail) {
-      query = { studentEmail };
+    if (!studentId && !studentEmail) {
+      return res.status(200).json({
+        success: true,
+        message: 'All notifications marked as read'
+      });
     }
 
-    await Notification.updateMany(query, { read: true });
+    const query = {
+      $or: [
+        { userId: studentId },
+        { studentId: studentId },
+        { studentEmail: studentEmail }
+      ]
+    };
+
+    await Notification.updateMany(query, { read: true, isRead: true });
 
     res.status(200).json({
       success: true,

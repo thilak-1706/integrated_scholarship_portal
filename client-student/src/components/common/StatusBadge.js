@@ -17,10 +17,10 @@ const StatusBadge = ({ status }) => {
     switch (st) {
       case 'SUBMITTED':
         return {
-          bg: '#eff6ff',
-          text: '#1d4ed8',
-          border: '#bfdbfe',
-          dot: '#3b82f6',
+          bg: '#ecfdf5',
+          text: '#047857',
+          border: '#a7f3d0',
+          dot: '#10b981',
           label: 'Submitted (Pending Institute)',
           icon: <Clock size={13} />
         };

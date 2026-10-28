@@ -140,7 +140,7 @@ const StudentFeedback = () => {
         <div className="col-12 col-xl-5">
           <div className="custom-card p-4 h-100 shadow-sm border-0 rounded-3 bg-white">
             <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-              <MessageSquare className="text-primary" size={22} />
+              <MessageSquare style={{ color: '#059669' }} size={22} />
               <div>
                 <h5 className="fw-bold mb-0 text-dark">Submit Feedback</h5>
                 <small className="text-muted">Report SLA bottlenecks, verification queries or technical issues</small>
@@ -240,7 +240,8 @@ const StudentFeedback = () => {
 
               <button
                 type="submit"
-                className="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2 fw-semibold"
+                className="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2 fw-semibold text-white"
+                style={{ backgroundColor: '#10B981', borderColor: '#10B981' }}
                 disabled={submitting}
               >
                 {submitting ? (

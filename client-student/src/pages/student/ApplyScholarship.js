@@ -231,7 +231,7 @@ const ApplyScholarship = () => {
       <div className="custom-card p-3 p-sm-4 p-md-5 mb-4">
         <div className="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center border-bottom pb-3 mb-4 gap-2">
           <div>
-            <span className="badge bg-primary-subtle text-primary border border-primary-subtle mb-1">
+            <span className="badge bg-success-subtle text-success border border-success-subtle mb-1">
               Applying for Scheme
             </span>
             <h4 className="fw-bold text-dark mb-0 fs-5 fs-sm-4">{scholarship?.name}</h4>
@@ -260,12 +260,12 @@ const ApplyScholarship = () => {
         {/* Mobile Step Indicator */}
         <div className="d-md-none mb-4 p-3 bg-light rounded-3 border">
           <div className="d-flex justify-content-between align-items-center mb-1.5">
-            <span className="fw-bold small text-primary">Step {currentStep} of 7: {STEPS[currentStep - 1].name}</span>
+            <span className="fw-bold small text-success">Step {currentStep} of 7: {STEPS[currentStep - 1].name}</span>
             <span className="small text-muted">{Math.round((currentStep / 7) * 100)}%</span>
           </div>
           <div className="progress" style={{ height: '6px' }}>
             <div
-              className="progress-bar bg-primary rounded-pill"
+              className="progress-bar bg-success rounded-pill"
               role="progressbar"
               style={{ width: `${(currentStep / 7) * 100}%` }}
               aria-valuenow={(currentStep / 7) * 100}
@@ -702,7 +702,8 @@ const ApplyScholarship = () => {
             <button
               type="button"
               onClick={nextStep}
-              className="btn btn-primary px-4 d-flex align-items-center gap-1 fw-semibold"
+              className="btn btn-primary px-4 d-flex align-items-center gap-1 fw-semibold text-white"
+              style={{ backgroundColor: '#10B981', borderColor: '#10B981' }}
             >
               <span>Next: {STEPS[currentStep].name}</span>
               <ArrowRight size={16} />

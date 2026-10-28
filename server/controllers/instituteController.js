@@ -373,6 +373,9 @@ const verifyApplication = async (req, res) => {
       // Create Student Notification
       await createNotification({
         userId: application.studentId,
+        studentId: application.studentId,
+        studentEmail: application.studentEmail,
+        studentName: application.studentName,
         recipientRole: 'STUDENT',
         title: 'Institute Verification Passed ✅',
         message: `Your application (${application.applicationNumber}) has been verified by your college officer and forwarded to the ${departmentName || 'Department'} for sanction and approval.`,
@@ -395,6 +398,9 @@ const verifyApplication = async (req, res) => {
       // Notify Student
       await createNotification({
         userId: application.studentId,
+        studentId: application.studentId,
+        studentEmail: application.studentEmail,
+        studentName: application.studentName,
         recipientRole: 'STUDENT',
         title: 'Action Required: Application Correction Requested ⚠️',
         message: `Your Institute Officer requested corrections for application ${application.applicationNumber}. Remarks: "${remarks || 'Update required documents'}"`,
@@ -417,6 +423,9 @@ const verifyApplication = async (req, res) => {
       // Notify Student
       await createNotification({
         userId: application.studentId,
+        studentId: application.studentId,
+        studentEmail: application.studentEmail,
+        studentName: application.studentName,
         recipientRole: 'STUDENT',
         title: 'Application Rejected by Institute ❌',
         message: `Your application ${application.applicationNumber} was rejected by your institute. Reason: "${remarks || 'Ineligible or record mismatch'}"`,

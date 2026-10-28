@@ -428,6 +428,9 @@ const verifyDepartmentApplication = async (req, res) => {
       // Notify Student
       await createNotification({
         userId: application.studentId,
+        studentId: application.studentId,
+        studentEmail: application.studentEmail,
+        studentName: application.studentName,
         recipientRole: 'STUDENT',
         title: 'Scholarship Application Approved! 🎉',
         message: `Your scholarship application (${application.applicationNumber}) for "${application.scholarshipName}" has been approved by the Department for an amount of ₹${finalAmount.toLocaleString('en-IN')}. Sanction generation is pending.`,
@@ -449,6 +452,9 @@ const verifyDepartmentApplication = async (req, res) => {
 
       await createNotification({
         userId: application.studentId,
+        studentId: application.studentId,
+        studentEmail: application.studentEmail,
+        studentName: application.studentName,
         recipientRole: 'STUDENT',
         title: 'Department Correction Requested ⚠️',
         message: `Department officer has requested corrections for ${application.applicationNumber}: "${remarks || 'Update details'}"`,
@@ -470,6 +476,9 @@ const verifyDepartmentApplication = async (req, res) => {
 
       await createNotification({
         userId: application.studentId,
+        studentId: application.studentId,
+        studentEmail: application.studentEmail,
+        studentName: application.studentName,
         recipientRole: 'STUDENT',
         title: 'Application Rejected by Department ❌',
         message: `Your application (${application.applicationNumber}) was rejected by the Department. Reason: "${remarks || 'Criteria not met'}"`,
@@ -672,6 +681,9 @@ const generateSanctionOrder = async (req, res) => {
     // Notify Student
     await createNotification({
       userId: application.studentId,
+      studentId: application.studentId,
+      studentEmail: application.studentEmail,
+      studentName: application.studentName,
       recipientRole: 'STUDENT',
       title: 'Sanction Order Generated! 📜',
       message: `Sanction order (${sanction.sanctionNumber}) for ₹${sanction.approvedAmount.toLocaleString('en-IN')} has been generated for your scholarship. Payment will be queued for direct bank transfer.`,
@@ -941,6 +953,9 @@ const simulateDisbursement = async (req, res) => {
         // In-App Notification for Student
         await createNotification({
           userId: application.studentId,
+          studentId: application.studentId,
+          studentEmail: application.studentEmail,
+          studentName: application.studentName,
           recipientRole: 'STUDENT',
           title: 'Scholarship Disbursed to Bank Account! 💰',
           message: `Congratulations! Your scholarship payment of ₹${payment.amount.toLocaleString('en-IN')} (Ref: ${payment.paymentReference}) has been disbursed via DBT to your bank account. UTR: ${randomUtr}.`,

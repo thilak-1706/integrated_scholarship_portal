@@ -30,6 +30,8 @@ function App() {
           <Route path="/login" element={<AdminLogin />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/login/admin" element={<AdminLogin />} />
+          <Route path="/register" element={<AdminLogin initialMode="signup" />} />
+          <Route path="/admin/register" element={<AdminLogin initialMode="signup" />} />
 
           {/* Admin Portal Routes */}
           <Route

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { ShieldCheck, User, Mail, Lock, Phone, Building2, ArrowRight } from 'lucide-react';
+import { ShieldCheck, User, Mail, Lock, Phone, Building2, ArrowRight, LogIn, UserPlus } from 'lucide-react';
 
 const Register = () => {
   const [institutions, setInstitutions] = useState([]);
@@ -70,17 +70,36 @@ const Register = () => {
   };
 
   return (
-    <div className="min-vh-100 d-flex flex-column justify-content-between" style={{ backgroundColor: '#0f172a' }}>
+    <div className="min-vh-100 d-flex flex-column justify-content-between" style={{ backgroundColor: '#061a12' }}>
       <div className="container py-4 py-md-5 my-auto px-3 px-sm-4">
         <div className="row justify-content-center">
           <div className="col-12 col-lg-8">
             <div className="custom-card p-3 p-sm-4 p-md-5 bg-white shadow-lg border-0 rounded-4">
               <div className="text-center mb-4">
-                <div className="d-inline-flex p-3 rounded-circle bg-primary text-white mb-2">
+                <div className="d-inline-flex p-3 rounded-circle bg-success text-white mb-2">
                   <ShieldCheck size={32} />
                 </div>
                 <h4 className="fw-bold text-dark mb-1 fs-5 fs-sm-4">Student Portal Registration</h4>
-                <p className="text-muted small">Create your national scholarship account to apply and track grants</p>
+                <p className="text-muted small mb-0">Create your national scholarship account to apply and track grants</p>
+              </div>
+
+              {/* Sign In / Sign Up Tabs */}
+              <div className="d-flex p-1 bg-light rounded-3 mb-4 border mx-auto" style={{ maxWidth: '340px' }}>
+                <button
+                  type="button"
+                  onClick={() => navigate('/login')}
+                  className="btn btn-sm w-50 py-1.5 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-2 text-muted border-0 bg-transparent"
+                >
+                  <LogIn size={15} />
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm w-50 py-1.5 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-2 btn-success shadow-sm text-white"
+                >
+                  <UserPlus size={15} />
+                  Sign Up
+                </button>
               </div>
 
               {error && (
@@ -230,7 +249,7 @@ const Register = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn btn-primary w-100 py-2.5 mt-4 fw-bold d-flex align-items-center justify-content-center gap-2"
+                  className="btn btn-success w-100 py-2.5 mt-4 fw-bold d-flex align-items-center justify-content-center gap-2"
                 >
                   {loading ? 'Creating Account...' : 'Complete Student Registration'}
                   <ArrowRight size={16} />
@@ -239,7 +258,7 @@ const Register = () => {
 
               <div className="mt-4 text-center border-top pt-3">
                 <span className="text-muted small">Already registered? </span>
-                <Link to="/student/login" className="small text-primary fw-bold text-decoration-none">
+                <Link to="/student/login" className="small text-success fw-bold text-decoration-none">
                   Sign in here
                 </Link>
               </div>

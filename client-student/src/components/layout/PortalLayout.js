@@ -32,7 +32,7 @@ const PortalLayout = ({ children, pageTitle, breadcrumbs = [] }) => {
                       <li
                         key={idx}
                         className={`breadcrumb-item ${idx === breadcrumbs.length - 1 ? 'active fw-semibold' : ''}`}
-                        style={{ color: idx === breadcrumbs.length - 1 ? '#2563EB' : '#64748B' }}
+                        style={{ color: idx === breadcrumbs.length - 1 ? '#059669' : '#64748B' }}
                       >
                         {b.link && idx !== breadcrumbs.length - 1 ? (
                           <a href={b.link} className="text-decoration-none" style={{ color: '#64748B' }}>

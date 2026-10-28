@@ -39,6 +39,9 @@ const recordAuditLog = async ({
  */
 const createNotification = async ({
   userId,
+  studentId,
+  studentEmail = '',
+  studentName = '',
   recipientRole,
   institutionId,
   departmentId,
@@ -46,11 +49,19 @@ const createNotification = async ({
   message,
   type = 'info',
   applicationNumber = '',
+  refNo = '',
+  schemeId = '',
+  schemeTitle = '',
+  remarks = '',
   link = ''
 }) => {
   try {
+    const finalUserId = userId || studentId || null;
     return await Notification.create({
-      userId: userId || null,
+      userId: finalUserId,
+      studentId: finalUserId,
+      studentEmail,
+      studentName,
       recipientRole: recipientRole || 'STUDENT',
       institutionId: institutionId || null,
       departmentId: departmentId || null,
@@ -58,8 +69,13 @@ const createNotification = async ({
       message,
       type,
       applicationNumber,
+      refNo: refNo || applicationNumber,
+      schemeId,
+      schemeTitle,
+      remarks,
       link,
-      isRead: false
+      isRead: false,
+      read: false
     });
   } catch (error) {
     console.error('Failed to create notification:', error);

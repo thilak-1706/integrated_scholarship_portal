@@ -100,7 +100,7 @@ const Navbar = () => {
         </div>
       `,
       icon: notif.type === 'success' ? 'success' : notif.type === 'danger' ? 'error' : 'info',
-      confirmButtonColor: '#2563eb',
+      confirmButtonColor: '#10b981',
       confirmButtonText: notif.type === 'danger' ? 'Go to Dashboard' : 'Close'
     }).then((res) => {
       if (res.isConfirmed && notif.type === 'danger') {
@@ -143,8 +143,8 @@ const Navbar = () => {
           <div
             className="p-2 rounded-3 text-white shadow-sm d-flex align-items-center justify-content-center"
             style={{
-              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.35)'
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)'
             }}
           >
             <GraduationCap size={22} />
@@ -286,7 +286,7 @@ const Navbar = () => {
                       width: '32px',
                       height: '32px',
                       fontSize: '0.88rem',
-                      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)'
+                      background: 'linear-gradient(135deg, #10b981, #059669)'
                     }}
                   >
                     {studentData?.fullName?.charAt(0) || 'S'}

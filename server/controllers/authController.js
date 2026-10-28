@@ -357,9 +357,349 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// @desc    Register a new Institute Officer
+// @route   POST /api/auth/register-institute
+// @access  Public
+const registerInstituteOfficer = async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      password,
+      phone,
+      institutionMode, // 'existing' | 'new'
+      institutionId,
+      institutionName,
+      institutionCode,
+      state,
+      district,
+      designation
+    } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, and password are required'
+      });
+    }
+
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'A user with this email address already exists'
+      });
+    }
+
+    let finalInstitutionId = null;
+    let finalInstitutionName = '';
+
+    if (institutionMode === 'new' || (!institutionId && institutionName)) {
+      const trimmedName = (institutionName || `${name}'s Institute`).trim();
+      const code = (institutionCode || `INST-${Math.floor(1000 + Math.random() * 9000)}`).toUpperCase().trim();
+      const instState = (state || 'Delhi').trim();
+      const instDistrict = (district || 'Central').trim();
+
+      // Check if institution with same name or code already exists
+      let institution = await Institution.findOne({
+        $or: [{ name: trimmedName }, { code: code }]
+      });
+
+      if (!institution) {
+        institution = await Institution.create({
+          name: trimmedName,
+          code: code,
+          state: instState,
+          district: instDistrict,
+          contactEmail: email.toLowerCase().trim(),
+          phone: phone || '',
+          status: 'Active'
+        });
+      }
+
+      finalInstitutionId = institution._id;
+      finalInstitutionName = institution.name;
+    } else if (institutionId) {
+      const institution = await Institution.findById(institutionId);
+      if (institution) {
+        finalInstitutionId = institution._id;
+        finalInstitutionName = institution.name;
+      }
+    }
+
+    if (!finalInstitutionId) {
+      // Fallback to first active institution or default
+      const defaultInst = await Institution.findOne({ status: 'Active' }).sort({ name: 1 });
+      if (defaultInst) {
+        finalInstitutionId = defaultInst._id;
+        finalInstitutionName = defaultInst.name;
+      } else {
+        const fallback = await Institution.create({
+          name: 'National Institute of Technology (NIT Delhi)',
+          code: 'NITD-AISHE-101',
+          state: 'Delhi',
+          district: 'New Delhi',
+          contactEmail: email.toLowerCase().trim(),
+          status: 'Active'
+        });
+        finalInstitutionId = fallback._id;
+        finalInstitutionName = fallback.name;
+      }
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = await User.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      phone: phone || '',
+      role: 'INSTITUTE_OFFICER',
+      institutionId: finalInstitutionId,
+      institutionName: finalInstitutionName,
+      status: 'Active',
+      profile: {
+        academicDepartment: designation || 'Institutional Nodal Officer',
+        collegeName: finalInstitutionName,
+        state: state || 'Delhi',
+        city: district || 'Central'
+      }
+    });
+
+    // Update institution assigned officer
+    if (finalInstitutionId) {
+      await Institution.findByIdAndUpdate(finalInstitutionId, {
+        assignedOfficer: user._id,
+        assignedOfficerName: user.name,
+        contactEmail: user.email,
+        phone: user.phone || ''
+      });
+    }
+
+    const token = generateToken(user);
+    const userData = user.toObject();
+    delete userData.password;
+
+    return res.status(201).json({
+      success: true,
+      message: 'Institute Officer account created successfully',
+      token,
+      user: userData
+    });
+  } catch (error) {
+    console.error('Institute Registration Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error during institute registration',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Register a new Department Officer
+// @route   POST /api/auth/register-department
+// @access  Public
+const registerDepartmentOfficer = async (req, res) => {
+  try {
+    const {
+      name,
+      email,
+      password,
+      phone,
+      departmentMode, // 'existing' | 'new'
+      departmentId,
+      departmentName,
+      departmentCode,
+      departmentType,
+      provider,
+      designation
+    } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, and password are required'
+      });
+    }
+
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'A user with this email address already exists'
+      });
+    }
+
+    let finalDepartmentId = null;
+    let finalDepartmentName = '';
+
+    if (departmentMode === 'new' || (!departmentId && departmentName)) {
+      const trimmedName = (departmentName || `${name}'s Department`).trim();
+      const code = (departmentCode || `DEPT-${Math.floor(1000 + Math.random() * 9000)}`).toUpperCase().trim();
+      const type = ['GOVERNMENT', 'PRIVATE', 'CORPORATE', 'NGO'].includes(departmentType) ? departmentType : 'GOVERNMENT';
+      const prov = (provider || 'Ministry of Education & Welfare, Govt of India').trim();
+
+      let department = await Department.findOne({
+        $or: [{ name: trimmedName }, { code: code }]
+      });
+
+      if (!department) {
+        department = await Department.create({
+          name: trimmedName,
+          code: code,
+          type: type,
+          provider: prov,
+          contact: {
+            email: email.toLowerCase().trim(),
+            phone: phone || ''
+          },
+          budget: {
+            allocated: 5000000,
+            disbursed: 0
+          },
+          status: 'Active'
+        });
+      }
+
+      finalDepartmentId = department._id;
+      finalDepartmentName = department.name;
+    } else if (departmentId) {
+      const department = await Department.findById(departmentId);
+      if (department) {
+        finalDepartmentId = department._id;
+        finalDepartmentName = department.name;
+      }
+    }
+
+    if (!finalDepartmentId) {
+      const defaultDept = await Department.findOne({ status: 'Active' }).sort({ name: 1 });
+      if (defaultDept) {
+        finalDepartmentId = defaultDept._id;
+        finalDepartmentName = defaultDept.name;
+      } else {
+        const fallback = await Department.create({
+          name: 'Ministry of Higher Education & Welfare',
+          code: 'MOHE-GOV',
+          type: 'GOVERNMENT',
+          provider: 'Ministry of Education, Govt of India',
+          contact: { email: email.toLowerCase().trim() },
+          status: 'Active'
+        });
+        finalDepartmentId = fallback._id;
+        finalDepartmentName = fallback.name;
+      }
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = await User.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      phone: phone || '',
+      role: 'DEPARTMENT_OFFICER',
+      departmentId: finalDepartmentId,
+      departmentName: finalDepartmentName,
+      status: 'Active',
+      profile: {
+        academicDepartment: designation || 'Ministry Scheme Approval Officer'
+      }
+    });
+
+    if (finalDepartmentId) {
+      await Department.findByIdAndUpdate(finalDepartmentId, {
+        assignedOfficer: user._id,
+        assignedOfficerName: user.name,
+        'contact.email': user.email,
+        'contact.phone': user.phone || ''
+      });
+    }
+
+    const token = generateToken(user);
+    const userData = user.toObject();
+    delete userData.password;
+
+    return res.status(201).json({
+      success: true,
+      message: 'Department Officer account created successfully',
+      token,
+      user: userData
+    });
+  } catch (error) {
+    console.error('Department Registration Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error during department registration',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Register a new Administrator
+// @route   POST /api/auth/register-admin
+// @access  Public
+const registerAdmin = async (req, res) => {
+  try {
+    const { name, email, password, phone, designation, adminSecret } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, and password are required'
+      });
+    }
+
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'A user with this email address already exists'
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = await User.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      phone: phone || '',
+      role: 'ADMIN',
+      status: 'Active',
+      profile: {
+        academicDepartment: designation || 'National Portal Administrator'
+      }
+    });
+
+    const token = generateToken(user);
+    const userData = user.toObject();
+    delete userData.password;
+
+    return res.status(201).json({
+      success: true,
+      message: 'Administrator account created successfully',
+      token,
+      user: userData
+    });
+  } catch (error) {
+    console.error('Admin Registration Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error during admin registration',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   login,
   registerStudent,
+  registerInstituteOfficer,
+  registerDepartmentOfficer,
+  registerAdmin,
   getPublicInstitutions,
   getPublicDepartments,
   getMe,

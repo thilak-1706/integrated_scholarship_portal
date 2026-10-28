@@ -658,24 +658,70 @@ const getAdminNotifications = async (req, res) => {
 
 const sendBroadcastNotification = async (req, res) => {
   try {
-    const { recipientRole, title, message, type } = req.body;
+    const { recipientRole, targetStudentId, studentEmail, title, message, type } = req.body;
+
+    let targetUserId = null;
+    let targetEmail = '';
+    let targetStudentName = '';
+    let finalRecipientRole = recipientRole || 'ALL';
+
+    // If targeted at a particular student
+    if (recipientRole === 'PARTICULAR_STUDENT' || studentEmail || targetStudentId) {
+      finalRecipientRole = 'STUDENT';
+      let student = null;
+      if (targetStudentId) {
+        student = await User.findById(targetStudentId);
+      }
+      if (!student && studentEmail) {
+        student = await User.findOne({
+          email: { $regex: new RegExp(`^${studentEmail.trim()}$`, 'i') }
+        });
+      }
+      if (!student && studentEmail) {
+        // Also check if entered application number
+        const app = await Application.findOne({
+          applicationNumber: studentEmail.trim().toUpperCase()
+        });
+        if (app && app.studentId) {
+          student = await User.findById(app.studentId);
+        }
+      }
+
+      if (!student) {
+        return res.status(404).json({
+          success: false,
+          message: 'Target student not found. Please verify the student email or application number.'
+        });
+      }
+
+      targetUserId = student._id;
+      targetEmail = student.email;
+      targetStudentName = student.name;
+    }
 
     const notif = await createNotification({
-      recipientRole: recipientRole || 'ALL',
-      title: title || 'System Announcement',
-      message: message || 'Important system update from Administrator',
+      userId: targetUserId,
+      studentId: targetUserId,
+      studentEmail: targetEmail,
+      studentName: targetStudentName,
+      recipientRole: finalRecipientRole,
+      title: title || (targetUserId ? 'Personal Notification' : 'System Announcement'),
+      message: message || 'Important system notification from Administrator',
       type: type || 'info'
     });
 
     return res.status(201).json({
       success: true,
-      message: 'Notification dispatched',
+      message: targetUserId
+        ? `Direct notification dispatched exclusively to student: ${targetStudentName} (${targetEmail})`
+        : 'Broadcast notification dispatched successfully',
       notification: notif
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // ==========================================
 // REGISTERED STUDENTS DIRECTORY (ADMIN)

@@ -10,7 +10,8 @@ const {
   resubmitCorrection,
   getMyPayments,
   getNotifications,
-  markNotificationRead
+  markNotificationRead,
+  markAllNotificationsRead
 } = require('../controllers/studentController');
 const { protect, authorizeRoles } = require('../middleware/authMiddleware');
 
@@ -28,6 +29,8 @@ router.get('/applications/:id/sanction-pdf', protect, downloadSanctionPdf);
 router.put('/applications/:id/resubmit-correction', protect, authorizeRoles('STUDENT'), resubmitCorrection);
 router.get('/payments', protect, authorizeRoles('STUDENT'), getMyPayments);
 router.get('/notifications', protect, getNotifications);
+router.put('/notifications/read-all', protect, markAllNotificationsRead);
 router.put('/notifications/:id/read', protect, markNotificationRead);
 
 module.exports = router;
+

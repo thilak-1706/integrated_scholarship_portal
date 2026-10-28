@@ -274,6 +274,9 @@ exports.respondToFeedback = async (req, res) => {
     // Notify Sender that Admin responded
     await createNotification({
       userId: feedback.senderId,
+      studentId: feedback.senderId,
+      studentEmail: feedback.senderEmail || '',
+      studentName: feedback.senderName || '',
       recipientRole: feedback.senderRole,
       title: 'Feedback Response Received from Admin',
       message: `Admin responded to your feedback "${feedback.subject}": ${response.substring(0, 120)}${response.length > 120 ? '...' : ''}`,

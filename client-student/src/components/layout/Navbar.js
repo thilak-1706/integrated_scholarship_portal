@@ -74,7 +74,7 @@ const Navbar = ({ onToggleSidebar }) => {
       text: 'Are you sure you want to end your student session?',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#2563EB',
+      confirmButtonColor: '#10B981',
       cancelButtonColor: '#64748B',
       confirmButtonText: 'Yes, Sign Out'
     }).then((result) => {
@@ -165,7 +165,7 @@ const Navbar = ({ onToggleSidebar }) => {
               <span
                 className="badge rounded-pill fw-semibold"
                 style={{
-                  backgroundColor: '#2563EB',
+                  backgroundColor: '#10B981',
                   color: '#FFFFFF',
                   fontSize: '0.68rem',
                   padding: '2.5px 9px',
@@ -191,14 +191,14 @@ const Navbar = ({ onToggleSidebar }) => {
         <div
           className="d-none d-xl-flex align-items-center gap-2 px-3 py-1.5 rounded-pill border"
           style={{
-            backgroundColor: '#F0F6FF',
-            borderColor: '#E2E8F0',
+            backgroundColor: '#ECFDF5',
+            borderColor: '#A7F3D0',
             fontSize: '0.78rem',
-            color: '#334155',
+            color: '#065F46',
             fontWeight: 600
           }}
         >
-          <i className="bi bi-calendar-event text-primary" style={{ fontSize: '0.9rem' }}></i>
+          <i className="bi bi-calendar-event" style={{ fontSize: '0.9rem', color: '#059669' }}></i>
           <span>
             {formattedDate} &bull; {formattedTime}
           </span>
@@ -262,7 +262,7 @@ const Navbar = ({ onToggleSidebar }) => {
                     <span
                       className="badge rounded-pill"
                       style={{
-                        backgroundColor: '#2563EB',
+                        backgroundColor: '#10B981',
                         color: '#FFFFFF',
                         fontSize: '0.68rem'
                       }}
@@ -274,8 +274,8 @@ const Navbar = ({ onToggleSidebar }) => {
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllRead}
-                    className="btn btn-link p-0 text-decoration-none small text-primary d-flex align-items-center gap-1"
-                    style={{ fontSize: '0.75rem' }}
+                    className="btn btn-link p-0 text-decoration-none small d-flex align-items-center gap-1"
+                    style={{ fontSize: '0.75rem', color: '#059669' }}
                   >
                     <i className="bi bi-check2-all"></i> Mark all read
                   </button>
@@ -347,7 +347,7 @@ const Navbar = ({ onToggleSidebar }) => {
                 width: '34px',
                 height: '34px',
                 fontSize: '0.95rem',
-                backgroundColor: '#2563EB',
+                backgroundColor: '#10B981',
                 flexShrink: 0
               }}
             >
@@ -391,9 +391,9 @@ const Navbar = ({ onToggleSidebar }) => {
                   <span
                     className="badge rounded-pill fw-semibold"
                     style={{
-                      backgroundColor: '#EFF6FF',
-                      color: '#2563EB',
-                      border: '1px solid #BFDBFE',
+                      backgroundColor: '#ECFDF5',
+                      color: '#059669',
+                      border: '1px solid #A7F3D0',
                       padding: '4px 8px',
                       fontSize: '0.7rem'
                     }}

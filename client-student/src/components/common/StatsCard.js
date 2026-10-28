@@ -5,8 +5,8 @@ const StatsCard = ({
   value,
   subtitle,
   icon,
-  iconBg = '#EFF6FF',
-  iconColor = '#2563EB',
+  iconBg = '#ECFDF5',
+  iconColor = '#059669',
   topChartColor = null
 }) => {
   const chartColor = topChartColor || iconColor;
