@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'https://backend-nsp.onrender.com/api',
   headers: {
     'Content-Type': 'application/json'
   }
@@ -24,11 +24,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // If unauthorized token expired
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+      if (
+        window.location.pathname !== '/login' &&
+        window.location.pathname !== '/register'
+      ) {
         localStorage.removeItem('nsp_token');
         localStorage.removeItem('nsp_user');
-        // window.location.href = '/login';
       }
     }
     return Promise.reject(error);

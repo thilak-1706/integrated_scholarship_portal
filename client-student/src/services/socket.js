@@ -6,10 +6,12 @@ const getSocketUrl = () => {
   if (process.env.REACT_APP_SOCKET_URL) {
     return process.env.REACT_APP_SOCKET_URL;
   }
+
   if (process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL.replace(/\/api\/?$/, '');
   }
-  return 'http://localhost:5000';
+
+  return 'https://backend-nsp.onrender.com';
 };
 
 const getToken = () => {
@@ -21,6 +23,7 @@ const getToken = () => {
  */
 export const getSocket = () => {
   const token = getToken();
+
   if (!token) {
     if (socket) {
       socket.disconnect();
@@ -37,8 +40,7 @@ export const getSocket = () => {
     return socket;
   }
 
-  const serverUrl = getSocketUrl();
-  socket = io(serverUrl, {
+  socket = io(getSocketUrl(), {
     auth: { token },
     transports: ['websocket', 'polling'],
     reconnection: true,
@@ -63,8 +65,7 @@ export const connectSocket = (customToken) => {
     socket = null;
   }
 
-  const serverUrl = getSocketUrl();
-  socket = io(serverUrl, {
+  socket = io(getSocketUrl(), {
     auth: { token },
     transports: ['websocket', 'polling'],
     reconnection: true,
