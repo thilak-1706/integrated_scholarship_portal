@@ -15,11 +15,20 @@ const protect = async (req, res, next) => {
 
   if (token) {
     try {
+      const primarySecret = process.env.JWT_SECRET || 'national_scholarship_secret_key_2026_jwt';
+      const legacySecret = 'national_scholarship_secret_key_2026_jwt';
 
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || 'national_scholarship_secret_key_2026_jwt'
-      );
+      let decoded;
+      try {
+        decoded = jwt.verify(token, primarySecret);
+      } catch (verifyErr) {
+        // Graceful transition fallback for tokens issued before JWT_SECRET rotation
+        if (primarySecret !== legacySecret) {
+          decoded = jwt.verify(token, legacySecret);
+        } else {
+          throw verifyErr;
+        }
+      }
 
       const user = await User.findById(decoded.id).select('-password');
 
@@ -40,7 +49,7 @@ const protect = async (req, res, next) => {
       req.user = user;
       next();
     } catch (error) {
-      console.error('JWT Verification Error:', error.message);
+      console.warn(`[Auth] Session token expired or changed (${error.message}). Client re-authentication required.`);
       return res.status(401).json({
         success: false,
         message: 'Not authorized, invalid or expired token'

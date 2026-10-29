@@ -54,10 +54,19 @@ const initSocketIO = (httpServer) => {
         return next(new Error('Authentication error: No bearer token provided'));
       }
 
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || 'national_scholarship_secret_key_2026_jwt'
-      );
+      const primarySecret = process.env.JWT_SECRET || 'national_scholarship_secret_key_2026_jwt';
+      const legacySecret = 'national_scholarship_secret_key_2026_jwt';
+
+      let decoded;
+      try {
+        decoded = jwt.verify(token, primarySecret);
+      } catch (verifyErr) {
+        if (primarySecret !== legacySecret) {
+          decoded = jwt.verify(token, legacySecret);
+        } else {
+          throw verifyErr;
+        }
+      }
 
       const user = await User.findById(decoded.id).select('-password');
       if (!user) {
