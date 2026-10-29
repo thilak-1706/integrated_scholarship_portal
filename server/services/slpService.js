@@ -204,6 +204,10 @@ const completeStage = async (applicationId, stageKey, officerInfo = {}, actionTy
  */
 const checkActiveSLAs = async () => {
   try {
+    if (mongoose.connection.readyState !== 1) {
+      return; // Database not connected or reconnecting, skip tick gracefully
+    }
+
     const activeTrackings = await SLPTracking.find({
       stageCompletedAt: null,
       currentStage: { $nin: ['DISBURSED', 'REJECTED'] }
@@ -351,7 +355,11 @@ const checkActiveSLAs = async () => {
       }
     }
   } catch (error) {
-    console.error('[SLP Engine] Error in checkActiveSLAs:', error);
+    if (error.name === 'MongoServerSelectionError' || error.name === 'MongoNetworkTimeoutError' || error.name === 'MongoPoolClearedError' || error.name === 'MongoNetworkError') {
+      console.warn(`[SLP Engine] Database unavailable, will retry next tick: ${error.message}`);
+    } else {
+      console.error('[SLP Engine] Error in checkActiveSLAs:', error);
+    }
   }
 };
 
